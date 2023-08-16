@@ -203,7 +203,6 @@ match xs with
 end.
 
 (** Numbers: *)
-
 Definition parseNumber (xs : list token)
                      : optionE (nat * list token) :=
 match xs with

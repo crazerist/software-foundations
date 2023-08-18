@@ -118,6 +118,7 @@ Example auto_example_3 : forall (P Q R S T U: Prop),
   P ->
   U.
 Proof.
+  
   (* When it cannot solve the goal, [auto] does nothing *)
   auto.
 
@@ -202,7 +203,7 @@ Qed.
 (** It is also possible to define specialized hint databases (besides
     [core]) that can be activated only when needed; indeed, it is good
     style to create your own hint databases instead of polluting
-    [core].  See the Coq reference manual for details. *)
+    [core].  See the Coq reference manual for deta  ils. *)
 
 Hint Resolve le_antisym : core.
 
@@ -227,7 +228,7 @@ Hint Unfold is_fortytwo : core.
 Example auto_example_7' : forall x,
   (x <= 42 /\ 42 <= x) -> is_fortytwo x.
 Proof.
-  auto. (* try also: info_auto. *)
+  info_auto. (* try also: info_auto. *)
 Qed.
 
 (** (Note that the [Hint Unfold is_fortytwo] command above the
@@ -749,4 +750,4 @@ Proof.
   intros P Q HP HQ. destruct HP as [y HP']. eauto.
 Qed.
 
-(* 2023-03-25 11:12 *)
+(* 2023-08-18 11:54 *)

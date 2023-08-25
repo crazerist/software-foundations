@@ -11,6 +11,7 @@ From Coq Require Import Lia.
 From Coq Require Import Lists.List. Import ListNotations.
 From Coq Require Import Logic.FunctionalExtensionality.
 From PLF Require Export Imp.
+From Coq Require Import Strings.String.
 Set Default Goal Selector "!".
 
 (** *** Before You Get Started:
@@ -176,7 +177,14 @@ Theorem skip_right : forall c,
     <{ c ; skip }>
     c.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold cequiv; intros; split; intros.
+  - inversion H; subst. 
+    inversion H5; subst.
+    assumption.
+  - eapply E_Seq.
+    + apply H.
+    + constructor.
+Qed.
 (** [] *)
 
 (** Similarly, here is a simple equivalence that optimizes [if]
@@ -268,7 +276,15 @@ Theorem if_false : forall b c1 c2,
     <{ if b then c1 else c2 end }>
     c2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; split; intros.
+  - inversion H0; subst.
+    + unfold bequiv in H. simpl in H.
+      rewrite H in *. discriminate.
+    + assumption.
+  - eapply E_IfFalse; try assumption.
+    unfold bequiv in H; simpl in H.
+    auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (swap_if_branches)
@@ -281,7 +297,16 @@ Theorem swap_if_branches : forall b c1 c2,
     <{ if b then c1 else c2 end }>
     <{ if ~ b then c2 else c1 end }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; split; intros.
+  - inversion H; subst.
+    + apply E_IfFalse; simpl; try rewrite H5; auto.
+    + apply E_IfTrue; simpl; try rewrite H5; auto.
+  - inversion H; subst.
+    + apply E_IfFalse; simpl in H5; 
+      rewrite negb_true_iff in H5; assumption.
+    + apply E_IfTrue; simpl in H5;
+      rewrite negb_false_iff in H5; assumption.
+Qed.
 (** [] *)
 
 (** For [while] loops, we can give a similar pair of theorems.  A loop
@@ -384,7 +409,14 @@ Theorem while_true : forall b c,
     <{ while b do c end }>
     <{ while true do skip end }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; split; intros.
+  - apply while_true_nonterm in H0.
+    + contradiction.
+    + assumption.
+  - apply while_true_nonterm in H0.
+    + contradiction.
+    + unfold bequiv. reflexivity.
+Qed.
 (** [] *)
 
 (** A more interesting fact about [while] commands is that any number
@@ -428,7 +460,18 @@ Proof.
 Theorem seq_assoc : forall c1 c2 c3,
   cequiv <{(c1;c2);c3}> <{c1;(c2;c3)}>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; split; intros.
+  - inversion H; inversion H2; subst. econstructor.
+    + apply H8.
+    + econstructor.
+      * apply H11.
+      * auto.
+  - inversion H; inversion H5; subst. econstructor.
+    + econstructor.
+      * apply H2.
+      * apply H8.
+    + auto.
+Qed.
 (** [] *)
 
 (** Proving program properties involving assignments is one place
@@ -457,7 +500,13 @@ Theorem assign_aequiv : forall (X : string) (a : aexp),
   aequiv <{ X }> a ->
   cequiv <{ skip }> <{ X := a }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; split; intros; inversion H0; subst; clear H0.
+  - assert (st' =[ X := a ]=> (X !-> st' X ; st')).
+    { constructor. unfold aequiv in H. rewrite <- H. reflexivity. }
+    rewrite t_update_same in H0; assumption.
+  - unfold aequiv in H. rewrite <- H. 
+    rewrite t_update_same. constructor.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (equiv_classes) *)
@@ -521,8 +570,8 @@ Definition prog_i : com :=
        X := Y + 1
      end }>.
 
-Definition equiv_classes : list (list com)
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition equiv_classes : list (list com) :=
+  [[prog_a;prog_d];[prog_b;prog_e];[prog_c;prog_h];[prog_f;prog_g];[prog_i]].
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_equiv_classes : option (nat*string) := None.
@@ -715,7 +764,16 @@ Theorem CSeq_congruence : forall c1 c1' c2 c2',
   cequiv c1 c1' -> cequiv c2 c2' ->
   cequiv <{ c1;c2 }> <{ c1';c2' }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold cequiv; intros; split; intros.
+  - inversion H1; subst. rewrite H in H4; clear H.
+    rewrite H0 in H7; clear H0. econstructor.
+    + apply H4.
+    + auto.
+  - inversion H1; subst. apply H in H4; clear H.
+    apply H0 in H7; clear H0. econstructor.
+    + apply H4.
+    + auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (CIf_congruence) *)
@@ -724,7 +782,18 @@ Theorem CIf_congruence : forall b b' c1 c1' c2 c2',
   cequiv <{ if b then c1 else c2 end }>
          <{ if b' then c1' else c2' end }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold cequiv; unfold bequiv; intros; split; intros.
+  - inversion H2; subst.
+    + rewrite H0 in H9; clear H0; clear H1. 
+      rewrite H in H8; clear H. econstructor; assumption.
+    + rewrite H1 in H9; clear H0; clear H1.
+      rewrite H in H8; clear H. econstructor; assumption.
+  - inversion H2; subst.
+    + apply H0 in H9; clear H0; clear H1.
+      rewrite <- H in H8; clear H. econstructor; assumption.
+    + apply H1 in H9; clear H0; clear H1.
+      rewrite <- H in H8; clear H. econstructor; assumption.
+Qed.
 (** [] *)
 
 (** For example, here are two equivalent programs and a proof of their
@@ -746,7 +815,7 @@ Proof.
   - apply CIf_congruence.
     + apply refl_bequiv.
     + apply CAsgn_congruence. unfold aequiv. simpl.
-      symmetry. apply minus_diag.
+      symmetry. apply Nat.sub_diag.
     + apply refl_cequiv.
 Qed.
 
@@ -758,7 +827,9 @@ Qed.
     relation (formally), together with an informal sketch of a proof
     that it is an equivalence but not a congruence. *)
 
-(* FILL IN HERE *)
+Definition cequiv' (c1 c2 : com) : Prop :=
+  forall (st st' : state),
+    (empty_st =[ c1 ]=> st') <-> (empty_st =[ c2 ]=> st').
 (* Do not modify the following line: *)
 Definition manual_grade_for_not_congr : option (nat*string) := None.
 (** [] *)
@@ -1105,9 +1176,23 @@ Proof.
        become constants after folding *)
       simpl. destruct (n =? n0); reflexivity.
   - (* BLe *)
-    (* FILL IN HERE *) admit.
+    simpl. remember (fold_constants_aexp a1 ) eqn : E1.
+    remember (fold_constants_aexp a2) eqn : E2.
+    replace (aeval st a1) with (aeval st a) by
+      (subst; rewrite <- fold_constants_aexp_sound; reflexivity).
+    replace (aeval st a2) with (aeval st a0) by
+      (subst; rewrite <- fold_constants_aexp_sound; reflexivity).
+    destruct a, a0; try reflexivity.
+    simpl. destruct (n <=? n0); reflexivity.
   - (* BGt *)
-    (* FILL IN HERE *) admit.
+    simpl. remember (fold_constants_aexp a1) eqn : E1.
+    remember (fold_constants_aexp a2) eqn : E2.
+    replace (aeval st a1) with (aeval st a) by
+      (subst; rewrite <- fold_constants_aexp_sound; reflexivity).
+    replace (aeval st a2) with (aeval st a0) by
+      (subst; rewrite <- fold_constants_aexp_sound; reflexivity).
+    destruct a, a0; try reflexivity.
+    simpl. destruct (n <=? n0); reflexivity.
   - (* BNot *)
     simpl. remember (fold_constants_bexp b) as b' eqn:Heqb'.
     rewrite IHb.
@@ -1118,7 +1203,7 @@ Proof.
     remember (fold_constants_bexp b2) as b2' eqn:Heqb2'.
     rewrite IHb1. rewrite IHb2.
     destruct b1'; destruct b2'; reflexivity.
-(* FILL IN HERE *) Admitted.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (fold_constants_com_sound)
@@ -1149,7 +1234,13 @@ Proof.
       apply trans_cequiv with c2; try assumption.
       apply if_false; assumption.
   - (* while *)
-    (* FILL IN HERE *) Admitted.
+    assert (bequiv b (fold_constants_bexp b)). {
+      apply fold_constants_bexp_sound. }
+    destruct (fold_constants_bexp b) eqn : E;
+      try (apply CWhile_congruence; assumption).
+    + apply while_true; assumption.
+    + apply while_false; assumption.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1185,21 +1276,60 @@ Proof.
      optimize_0plus_com
 *)
 
-Fixpoint optimize_0plus_aexp (a : aexp) : aexp
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint optimize_0plus_aexp (a : aexp) : aexp :=
+  match a with
+  | ANum n => ANum n
+  | AId x => AId x
+  | <{ 0 + a1 }> => optimize_0plus_aexp a1
+  | <{ a1 + a2 }> => 
+    <{ (optimize_0plus_aexp a1) + (optimize_0plus_aexp a2) }>
+  | <{ a1 - a2 }> =>
+    <{ (optimize_0plus_aexp a1) - (optimize_0plus_aexp a2) }>
+  | <{ a1 * a2 }> =>
+    <{ (optimize_0plus_aexp a1) * (optimize_0plus_aexp a2) }>
+  end.
 
-Fixpoint optimize_0plus_bexp (b : bexp) : bexp
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint optimize_0plus_bexp (b : bexp) : bexp :=
+  match b with
+  | <{ true }> => <{ true }>
+  | <{ false }> => <{ false }>
+  | <{ a1 = a2 }> => 
+    <{ (optimize_0plus_aexp a1) = (optimize_0plus_aexp a2) }>
+  | <{ a1 <> a2 }> =>
+    <{ (optimize_0plus_aexp a1) <> (optimize_0plus_aexp a2) }>
+  | <{ a1 <= a2 }> =>
+    <{ (optimize_0plus_aexp a1) <= (optimize_0plus_aexp a2) }>
+  | <{ a1 > a2 }> =>
+    <{ (optimize_0plus_aexp a1) > (optimize_0plus_aexp a2) }>
+  | <{ ~ b1 }> =>
+    <{ ~ (optimize_0plus_bexp b1) }>
+  | <{ b1 && b2 }> =>
+    <{ (optimize_0plus_bexp b1) && (optimize_0plus_bexp b2) }>
+  end.
 
-Fixpoint optimize_0plus_com (c : com) : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint optimize_0plus_com (c : com) : com :=
+  match c with
+  | <{ skip }> => <{ skip }>
+  | <{ x := a }> => 
+    <{ x := (optimize_0plus_aexp a) }>
+  | <{ c1; c2 }> => 
+    <{ (optimize_0plus_com c1); (optimize_0plus_com c2) }>
+  | <{ if b then c1 else c2 end }> =>
+    <{ if (optimize_0plus_bexp b) 
+       then (optimize_0plus_com c1)
+       else (optimize_0plus_com c2)
+       end }>
+  | <{ while b do c end }> =>
+    <{ while (optimize_0plus_bexp b)
+       do (optimize_0plus_com c)
+       end }>
+  end.
 
 Example test_optimize_0plus:
     optimize_0plus_com
        <{ while X <> 0 do X := 0 + X - 1 end }>
   =    <{ while X <> 0 do X := X - 1 end }>.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 (** Prove that these three functions are sound, as we did for
     [fold_constants_*].  Make sure you use the congruence lemmas in the
@@ -1208,18 +1338,37 @@ Proof.
 Theorem optimize_0plus_aexp_sound:
   atrans_sound optimize_0plus_aexp.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold atrans_sound; intros; unfold aequiv; intros;
+  induction a; try reflexivity; simpl;
+  try (rewrite IHa1; rewrite IHa2); try reflexivity.
+  destruct a1; try destruct n; try reflexivity.
+Qed.
 
 Theorem optimize_0plus_bexp_sound :
   btrans_sound optimize_0plus_bexp.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold btrans_sound; intros; unfold bequiv; intros;
+  induction b; simpl;
+  try (rewrite optimize_0plus_aexp_sound with (a := a1);
+  rewrite optimize_0plus_aexp_sound with (a := a2)); 
+  try reflexivity.
+  - rewrite IHb. reflexivity.
+  - rewrite IHb1, IHb2. reflexivity.
+Qed.
 
 Theorem optimize_0plus_com_sound :
   ctrans_sound optimize_0plus_com.
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  unfold ctrans_sound; intros;
+  induction c; simpl; intros.
+  - apply refl_cequiv.
+  - apply CAsgn_congruence. apply optimize_0plus_aexp_sound.
+  - apply CSeq_congruence; assumption.
+  - apply CIf_congruence; try assumption. 
+    apply optimize_0plus_bexp_sound.
+  - apply CWhile_congruence; try assumption.
+    apply optimize_0plus_bexp_sound.
+Qed.
 (** Finally, let's define a compound optimizer on commands that first
     folds constants (using [fold_constants_com]) and then eliminates
     [0 + n] terms (using [optimize_0plus_com]). *)
@@ -1231,7 +1380,11 @@ Definition optimizer (c : com) := optimize_0plus_com (fold_constants_com c).
 Theorem optimizer_sound :
   ctrans_sound optimizer.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold ctrans_sound; unfold optimizer; intros.
+  apply trans_cequiv with (fold_constants_com c).
+  - apply fold_constants_com_sound.
+  - apply optimize_0plus_com_sound.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -1378,14 +1531,47 @@ Lemma aeval_weakening : forall x st a ni,
   var_not_used_in_aexp x a ->
   aeval (x !-> ni ; st) a = aeval st a.
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  intros. induction H; simpl;
+  try (rewrite IHvar_not_used_in_aexp1, IHvar_not_used_in_aexp2; auto);
+  try reflexivity. apply t_update_neq. assumption.
+Qed.
 (** Using [var_not_used_in_aexp], formalize and prove a correct version
     of [subst_equiv_property]. *)
 
-(* FILL IN HERE
+Theorem subst_equiv_property'_helper : forall x1 st a1 a2,
+  aeval (x1 !-> aeval st a1; st) a2 =
+  aeval st (subst_aexp x1 a1 a2).
+Proof.
+  induction a2; intros; simpl;
+  try (unfold t_update; destruct (x1 =? x)%string);
+  try rewrite IHa2_1, IHa2_2;
+  reflexivity.
+Qed.
 
-    [] *)
+Theorem subst_equiv_property'_helper' : forall x1 a1 a2,
+  var_not_used_in_aexp x1 a1 ->
+  var_not_used_in_aexp x1 (subst_aexp x1 a1 a2).
+Proof.
+  induction a2; simpl; intros;
+  try (constructor;
+    try apply IHa2_1; try apply IHa2_2; assumption).
+  - destruct ((x1 =? x)%string) eqn : E; try assumption;
+    constructor. intro; subst. rewrite String.eqb_refl in E.
+    discriminate.
+Qed.
+
+Theorem subst_equiv_property' : forall x1 x2 a1 a2,
+  var_not_used_in_aexp x1 a1 ->
+  cequiv <{ x1 := a1; x2 := a2 }>
+         <{ x1 := a1; x2 := subst_aexp x1 a1 a2 }>.
+Proof.
+  intros; split; intros; inversion H0; subst; clear H0;
+  econstructor; try apply H3; inversion H3; subst; clear H3;
+  inversion H6; subst; clear H6; constructor;
+  rewrite subst_equiv_property'_helper with (a2 := a2);
+  [|symmetry]; apply aeval_weakening;
+  apply subst_equiv_property'_helper'; assumption.
+Qed.
 
 (** **** Exercise: 3 stars, standard (inequiv_exercise)
 
@@ -1394,7 +1580,12 @@ Proof.
 Theorem inequiv_exercise:
   ~ cequiv <{ while true do skip end }> <{ skip }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  assert (empty_st =[ skip ]=> empty_st).
+  { constructor. }
+  intro. apply H0 in H; clear H0. apply loop_never_stops in H.
+  contradiction.
+Qed.
+
 (** [] *)
 
 (* ################################################################# *)
@@ -1511,8 +1702,8 @@ Inductive ceval : com -> state -> state -> Prop :=
       st  =[ c ]=> st' ->
       st' =[ while b do c end ]=> st'' ->
       st  =[ while b do c end ]=> st''
-(* FILL IN HERE *)
-
+  | E_Havoc : forall st x n,
+    st =[ havoc x ]=> (x !-> n; st)
   where "st =[ c ]=> st'" := (ceval c st st').
 
 (** As a sanity check, the following claims should be provable for
@@ -1520,12 +1711,14 @@ Inductive ceval : com -> state -> state -> Prop :=
 
 Example havoc_example1 : empty_st =[ havoc X ]=> (X !-> 0).
 Proof.
-(* FILL IN HERE *) Admitted.
+  constructor.
+Qed.
 
 Example havoc_example2 :
   empty_st =[ skip; havoc Z ]=> (Z !-> 42).
 Proof.
-(* FILL IN HERE *) Admitted.
+  econstructor; constructor.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_Check_rule_for_HAVOC : option (nat*string) := None.
@@ -1552,13 +1745,27 @@ Definition pYX :=
 (** If you think they are equivalent, prove it. If you think they are
     not, prove that. *)
 
+(* t_update_permute
+     : forall (A : Type) (m : total_map A) (v1 v2 : A)
+         (x1 x2 : string),
+       x2 <> x1 ->
+       (x1 !-> v1; x2 !-> v2; m) = (x2 !-> v2; x1 !-> v1; m) *)
 Theorem pXY_cequiv_pYX :
   cequiv pXY pYX \/ ~cequiv pXY pYX.
 Proof.
   (* Hint: You may want to use [t_update_permute] at some point,
      in which case you'll probably be left with [X <> Y] as a
      hypothesis. You can use [discriminate] to discharge this. *)
-  (* FILL IN HERE *) Admitted.
+  (* FILL IN HERE *) 
+  left; unfold cequiv; intros; split; intros;
+  inversion H; inversion H2; inversion H5; subst.
+  - assert ((Y !-> n0; X !-> n; st)=(X !-> n; Y !-> n0; st)).
+    { apply t_update_permute. intro. discriminate. }
+    rewrite H0. apply E_Seq with (Y!->n0; st); constructor.
+  - assert ((Y !-> n; X !-> n0; st)=(X !-> n0; Y !-> n; st)).
+    { apply t_update_permute. intro. discriminate. }
+    rewrite <- H0. apply E_Seq with (X!->n0; st); constructor.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard, optional (havoc_copy)
@@ -1577,7 +1784,15 @@ Definition pcopy :=
 
 Theorem ptwice_cequiv_pcopy :
   cequiv ptwice pcopy \/ ~cequiv ptwice pcopy.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  right; intro.
+  assert (empty_st =[ptwice]=> (Y !-> 1; X !-> 0)).
+  { apply E_Seq with (X !-> 0); constructor. }
+  apply H in H0.
+  assert (forall st st', st =[pcopy]=> st' -> st' X = st' Y).
+  { intros. inversion H1; subst. inversion H7; subst. reflexivity. }
+  apply H1 in H0. discriminate.
+Qed.
 (** [] *)
 
 (** The definition of program equivalence we are using here has some
@@ -1613,12 +1828,37 @@ Definition p2 : com :=
 
 Lemma p1_may_diverge : forall st st', st X <> 0 ->
   ~ st =[ p1 ]=> st'.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  intros; intro. remember p1 eqn : E. 
+  induction H0; subst; inversion E; subst.
+  - simpl in H0. apply negb_false_iff in H0.
+    rewrite Nat.eqb_eq in H0. contradiction.
+  - apply IHceval2; try assumption; clear IHceval2.
+    inversion H0_; subst.
+    assert (forall st st' X,
+      st =[ X := X +1 ]=> st' -> 
+      st' X <> 0).
+    { intros. inversion H1; subst; simpl.
+      rewrite t_update_eq. lia. }
+    apply H1 in H6. assumption.
+Qed.
 
 Lemma p2_may_diverge : forall st st', st X <> 0 ->
   ~ st =[ p2 ]=> st'.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros; intro. remember p2 eqn : E.
+  induction H0; subst; inversion E; subst.
+  - simpl in H0. apply negb_false_iff in H0.
+    rewrite Nat.eqb_eq in H0. contradiction.
+  - apply IHceval2; try assumption; clear IHceval2.
+    inversion H0_; subst.
+    assert (forall st st' X,
+      st =[ X := X +1 ]=> st' -> 
+      st' X <> 0).
+    { intros. inversion H1; subst; simpl.
+      rewrite t_update_eq. lia. }
+    assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (p1_p2_equiv)
@@ -1627,8 +1867,24 @@ Proof.
     equivalent. *)
 
 Theorem p1_p2_equiv : cequiv p1 p2.
-Proof. (* FILL IN HERE *) Admitted.
-(** [] *)
+Proof.
+  unfold cequiv; unfold p1; unfold p2; intros.
+  destruct (st X =? 0) eqn : E.
+- split; intros; inversion H; subst;
+  try (apply E_WhileFalse; assumption);
+  try (simpl in H2; rewrite E in H2; discriminate).
+- split; intros.
+  + inversion H; subst.
+    * simpl in H4. rewrite E in H4. discriminate.
+    * assert (~ st =[ while ~ X = 0 do havoc Y; X := X + 1 end ]=> st').
+      { apply p1_may_diverge. rewrite Nat.eqb_neq in E. assumption. }
+      contradiction.
+  + inversion H; subst.
+    * simpl in H4. rewrite E in H4. discriminate.
+    * assert (~ st =[ while ~ X = 0 do skip end ]=> st').
+      { apply p2_may_diverge. rewrite Nat.eqb_neq in E. assumption. }
+      contradiction.
+Qed.
 
 (** **** Exercise: 4 stars, advanced (p3_p4_inequiv)
 
@@ -1648,7 +1904,27 @@ Definition p4 : com :=
      Z := 1 }>.
 
 Theorem p3_p4_inequiv : ~ cequiv p3 p4.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  unfold cequiv; intro.
+  assert ((Z !-> 2; X !-> 0; Z !-> 1; X !-> 1)=(Z !-> 2; X !-> 0)).
+  { apply functional_extensionality. intros.
+    unfold t_update. destruct (Z =? x)%string; auto.
+    destruct (X =? x)%string;auto. }
+  assert ((X!->1) =[p3]=> (Z!->2;X!->0)).
+  { unfold p3. apply E_Seq with (Z!->1;X!->1).
+    - constructor. auto.
+    - apply E_WhileTrue with (Z!->2;X!->0;Z!->1;X!->1).
+      + simpl. auto.
+      + apply E_Seq with (X !-> 0; Z !-> 1; X !-> 1); constructor.
+      + rewrite H0. constructor. reflexivity. }
+  rewrite H in H1. unfold p4 in H1. inversion H1; subst.
+  inversion H4; subst; simpl in H7. rewrite t_update_shadow in H7.
+  clear H0;clear H; clear H4; clear H1. inversion H7; subst; simpl in H3.
+  assert ((Z !-> 1; X !-> 0) Z = (Z !-> 2; X !-> 0) Z).
+  { rewrite H3. reflexivity. } clear H3; clear H7.
+  repeat rewrite t_update_eq in H. discriminate.
+Qed.
+    
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (p5_p6_equiv)
@@ -1669,8 +1945,56 @@ Definition p5 : com :=
 Definition p6 : com :=
   <{ X := 1 }>.
 
+Lemma p5_end_state : forall st st',
+  st =[p5]=> st' <-> st' = (X !-> 1; st).
+Proof.
+  split; unfold p5; intros.
+  - remember <{  while X <> 1 do havoc X end  }> eqn : E.
+    induction H; try discriminate E.
+    + inversion E; subst; clear E. simpl in H.
+      apply negb_false_iff in H. apply Nat.eqb_eq in H.
+      apply functional_extensionality; intros.
+      destruct (x =? X)%string eqn : E.
+      * apply String.eqb_eq in E; subst.
+        rewrite t_update_eq. assumption.
+      * apply String.eqb_neq in E.
+        assert ((X !-> 1; st) x = st x).
+        { apply t_update_neq. intro. symmetry in H0. contradiction. }
+        rewrite H0. reflexivity.
+    + inversion E; subst.
+      assert (st'' = (X !-> 1; st')); auto. clear IHceval2. clear E.
+      simpl in H. apply negb_true_iff in H. apply Nat.eqb_neq in H.
+      rewrite H2. inversion H0; subst. rewrite t_update_shadow. auto.
+  - rewrite H; clear H.
+    destruct (st X =? 1) eqn : E.
+    + apply Nat.eqb_eq in E.
+      assert ((X !-> 1; st) = st).
+      { apply functional_extensionality; intro.
+        destruct (X =? x)%string eqn : E1.
+        - apply String.eqb_eq in E1. subst. rewrite t_update_eq. auto.
+        - apply t_update_neq. apply String.eqb_neq in E1. auto. }
+      rewrite H; clear H. apply E_WhileFalse. simpl.
+      rewrite negb_false_iff. rewrite Nat.eqb_eq. assumption.
+    + apply Nat.eqb_neq in E. apply E_WhileTrue with (X !-> 1; st).
+      * simpl. rewrite negb_true_iff. rewrite Nat.eqb_neq. assumption.
+      * constructor.
+      * apply E_WhileFalse. reflexivity.
+Qed.
+
+Lemma p6_end_state : forall st st',
+  st =[p6]=> st' <-> st' = (X !-> 1; st).
+Proof.
+  split; unfold p6; intros.
+  - inversion H; subst. reflexivity.
+  - inversion H; subst. constructor. auto.
+Qed.
+
 Theorem p5_p6_equiv : cequiv p5 p6.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  unfold cequiv; intros; split; intros.
+  - apply p5_end_state in H. apply p6_end_state. assumption.
+  - apply p6_end_state in H. apply p5_end_state. assumption.
+Qed.
 (** [] *)
 
 End Himp.
@@ -1690,7 +2014,48 @@ Theorem swap_noninterfering_assignments: forall l1 l2 a1 a2,
     <{ l1 := a1; l2 := a2 }>
     <{ l2 := a2; l1 := a1 }>.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros; split; intro.
+  - inversion H2; subst. inversion H5; subst. inversion H8; subst.
+    apply E_Seq with (l2 !-> aeval st a2; st).
+    + constructor; auto.
+    + assert ((l2 !-> aeval st a2; st) =[ l1 := a1]=> 
+        (l1 !-> aeval st a1;l2 !-> aeval st a2; st)).
+      { constructor. apply aeval_weakening. assumption. }
+      assert ((l1 !-> aeval st a1; l2 !-> aeval st a2; st)=
+        (l2 !-> aeval (l1 !-> aeval st a1; st) a2; l1 !-> aeval st a1; st)).
+      { apply functional_extensionality; intro.
+        destruct (x =? l1)%string eqn : E1.
+        - rewrite String.eqb_eq in E1; subst.
+          rewrite t_update_eq. rewrite t_update_neq; auto.
+          rewrite t_update_eq. reflexivity.
+        - destruct (x =? l2) %string eqn : E2.
+          + rewrite String.eqb_eq in E2; subst.
+            rewrite t_update_neq; auto. repeat rewrite t_update_eq.
+            symmetry. apply aeval_weakening. assumption.
+          + apply String.eqb_neq in E1. apply String.eqb_neq in E2.
+            repeat (rewrite t_update_neq; auto). }
+       rewrite <- H4. assumption.
+  - inversion H2; subst. inversion H5; subst. inversion H8; subst.
+    apply E_Seq with (l1 !-> aeval st a1; st).
+    + constructor; auto.
+    + assert ((l1 !-> aeval st a1; st) =[ l2 := a2]=> 
+        (l2 !-> aeval st a2;l1 !-> aeval st a1; st)).
+      { constructor. apply aeval_weakening. assumption. }
+      assert ((l2 !-> aeval st a2; l1 !-> aeval st a1; st)=
+        (l1 !-> aeval (l2 !-> aeval st a2; st) a1; l2 !-> aeval st a2; st)).
+      { apply functional_extensionality; intro.
+        destruct (x =? l2)%string eqn : E1.
+        - rewrite String.eqb_eq in E1; subst.
+          rewrite t_update_eq. rewrite t_update_neq; auto.
+          rewrite t_update_eq. reflexivity.
+        - destruct (x =? l1) %string eqn : E2.
+          + rewrite String.eqb_eq in E2; subst.
+            rewrite t_update_neq; auto. repeat rewrite t_update_eq.
+            symmetry. apply aeval_weakening. assumption.
+          + apply String.eqb_neq in E1. apply String.eqb_neq in E2.
+            repeat (rewrite t_update_neq; auto). }
+       rewrite <- H4. assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard, optional (for_while_equiv)
@@ -1715,6 +2080,95 @@ Proof.
 
     [] *)
 
+Module ForImp.
+
+Inductive com : Type :=
+  | CSkip
+  | CBreak
+  | CAsgn (x : string) (a : aexp)
+  | CSeq (c1 c2 : com)
+  | CIf (b : bexp) (c1 c2 : com)
+  | CWhile (b : bexp) (c : com)
+  | CFor (b : bexp) (pre post c : com).
+
+Notation "'break'" := CBreak (in custom com at level 0).
+Notation "'skip'"  :=
+         CSkip (in custom com at level 0) : com_scope.
+Notation "x := y"  :=
+         (CAsgn x y)
+            (in custom com at level 0, x constr at level 0,
+             y at level 85, no associativity) : com_scope.
+Notation "x ; y" :=
+         (CSeq x y)
+           (in custom com at level 90, right associativity) : com_scope.
+Notation "'if' x 'then' y 'else' z 'end'" :=
+         (CIf x y z)
+           (in custom com at level 89, x at level 99,
+            y at level 99, z at level 99) : com_scope.
+Notation "'while' x 'do' y 'end'" :=
+         (CWhile x y)
+            (in custom com at level 89, x at level 99, y at level 99) : com_scope.
+Notation "'for' pre , b , post 'do' c 'end'" :=
+         (CFor b pre post c)
+            (in custom com at level 89, pre at level 99, b at level 99, post at level 99, c at level 99) : com_scope.
+
+Inductive result : Type :=
+  | SContinue
+  | SBreak.
+
+Reserved Notation "st '=[' c ']=>' st'"
+     (at level 40, c custom com at level 99, st' constr at next level).
+
+Inductive ceval : com -> state -> state -> Prop :=
+  | E_Skip : forall st,
+      st =[ skip ]=> st
+  | E_Asgn  : forall st a n x,
+      aeval st a = n ->
+      st =[ x := a ]=> (x !-> n ; st)
+  | E_Seq : forall c1 c2 st st' st'',
+      st  =[ c1 ]=> st'  ->
+      st' =[ c2 ]=> st'' ->
+      st  =[ c1 ; c2 ]=> st''
+  | E_IfTrue : forall st st' b c1 c2,
+      beval st b = true ->
+      st =[ c1 ]=> st' ->
+      st =[ if b then c1 else c2 end]=> st'
+  | E_IfFalse : forall st st' b c1 c2,
+      beval st b = false ->
+      st =[ c2 ]=> st' ->
+      st =[ if b then c1 else c2 end]=> st'
+  | E_WhileFalse : forall b st c,
+      beval st b = false ->
+      st =[ while b do c end ]=> st
+  | E_WhileTrue : forall st st' st'' b c,
+      beval st b = true ->
+      st  =[ c ]=> st' ->
+      st' =[ while b do c end ]=> st'' ->
+      st  =[ while b do c end ]=> st''
+  | E_For : forall b st st' pre post c,
+      st =[ pre ; while b do (c ; post) end ]=> st'->
+      st =[ CFor b pre post c ]=> st'
+  where "st =[ c ]=> st'" := (ceval c st st').
+
+Definition cequiv (c1 c2 : com) : Prop :=
+  forall (st st' : state),
+    (st =[ c1 ]=> st') <-> (st =[ c2 ]=> st').
+
+Definition p1 (c1 c2 c3 : com) (b : bexp) : com :=
+   <{for c1,b,c2 do c3 end}>.
+
+Definition p2 (c1 c2 c3 : com) (b : bexp) : com :=
+  <{c1; while b do c3; c2 end}>.
+
+Theorem for_while_equiv : forall c1 c2 c3 b,
+  cequiv (p1 c1 c2 c3 b) (p2 c1 c2 c3 b).
+Proof.
+  unfold p1; unfold p2; unfold cequiv; intros; split; intros.
+  - inversion H; subst. assumption.
+  - constructor. assumption.
+Qed.
+
+End ForImp.
 (** **** Exercise: 4 stars, advanced, optional (capprox)
 
     In this exercise we define an asymmetric variant of program
@@ -1741,31 +2195,52 @@ Definition capprox (c1 c2 : com) : Prop := forall (st st' : state),
 (** Find two programs [c3] and [c4] such that neither approximates
     the other. *)
 
-Definition c3 : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
-Definition c4 : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition c3 : com :=
+  <{ X := 1 }>.
+
+Definition c4 : com :=
+  <{ X := 2 }>.
 
 Theorem c3_c4_different : ~ capprox c3 c4 /\ ~ capprox c4 c3.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  unfold capprox; split; intro.
+  - assert (empty_st =[c4]=> (X !-> 1)).
+    { apply H. constructor. auto. }
+    inversion H0; subst. simpl in H5.
+    assert ((X !-> 2) X = (X !-> 1) X).
+    { rewrite H5. reflexivity. }
+    repeat rewrite t_update_eq in H1. discriminate.
+  - assert (empty_st =[c3]=> (X !-> 2)).
+    { apply H. constructor. auto. }
+    inversion H0; subst. simpl in H5.
+    assert ((X !-> 1) X = (X !-> 2) X).
+    { rewrite H5. reflexivity. }
+    repeat rewrite t_update_eq in H1. discriminate.
+Qed.
 
 (** Find a program [cmin] that approximates every other program. *)
 
-Definition cmin : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition cmin : com :=
+  loop.
 
 Theorem cmin_minimal : forall c, capprox cmin c.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  intros; intro; intros.
+  apply loop_never_stops in H. contradiction.
+Qed.
 
 (** Finally, find a non-trivial property which is preserved by
     program approximation (when going from left to right). *)
 
-Definition zprop (c : com) : Prop
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition zprop (c : com) : Prop := exists st st',
+  st =[c]=> st'.
 
 Theorem zprop_preserving : forall c c',
   zprop c -> capprox c c' -> zprop c'.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  unfold zprop; intros. destruct H as [st [st' H]].
+  exists st, st'. unfold capprox in H0. apply H0. assumption.
+Qed.
 (** [] *)
 
-(* 2023-07-06 15:50 *)
+(* 2023-08-015 17:14 *)

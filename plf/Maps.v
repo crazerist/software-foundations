@@ -187,8 +187,7 @@ Proof. reflexivity. Qed.
 
 Lemma t_apply_empty : forall (A : Type) (x : string) (v : A),
   (_ !-> v) x = v.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof. intros. reflexivity. Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (t_update_eq)
@@ -199,8 +198,9 @@ Proof.
 
 Lemma t_update_eq : forall (A : Type) (m : total_map A) x v,
   (x !-> v ; m) x = v.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof. 
+  intros. unfold t_update. rewrite eqb_refl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (t_update_neq)
@@ -213,7 +213,10 @@ Theorem t_update_neq : forall (A : Type) (m : total_map A) x1 x2 v,
   x1 <> x2 ->
   (x1 !-> v ; m) x2 = m x2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold t_update. destruct (eqb_spec x1 x2).
+  - destruct (H e).
+  - reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (t_update_shadow)
@@ -227,7 +230,11 @@ Proof.
 Lemma t_update_shadow : forall (A : Type) (m : total_map A) x v1 v2,
   (x !-> v2 ; x !-> v1 ; m) = (x !-> v2 ; m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. apply functional_extensionality. intros. 
+  unfold t_update. destruct (eqb_spec x x0).
+  - reflexivity.
+  - reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (t_update_same)
@@ -244,7 +251,11 @@ Proof.
 Theorem t_update_same : forall (A : Type) (m : total_map A) x,
   (x !-> m x ; m) = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. apply functional_extensionality. intros.
+  unfold t_update. destruct (eqb_spec x x0).
+  - destruct e. reflexivity.
+  - reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, especially useful (t_update_permute)
@@ -260,7 +271,13 @@ Theorem t_update_permute : forall (A : Type) (m : total_map A)
   =
   (x2 !-> v2 ; x1 !-> v1 ; m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. apply functional_extensionality. intros.
+  unfold t_update. destruct (eqb_spec x1 x), (eqb_spec x2 x).
+  - destruct e, e0. destruct H. reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -373,5 +390,6 @@ Qed.
     we will see in _Programming Language Foundations_, where maps are
     used to keep track of which program variables are defined in a
     given scope. *)
+
 
 (* 2023-07-06 15:50 *)

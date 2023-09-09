@@ -457,10 +457,59 @@ Check <{[x:=true] x}>.
     constructors and prove that the relation you've defined coincides
     with the function given above. *)
 
+
+(* Reserved Notation "'[' x ':=' s ']' t" (in custom stlc at level 20, x constr).
+
+Fixpoint subst (x : string) (s : tm) (t : tm) : tm :=
+  match t with
+  | tm_var y =>
+      if String.eqb x y then s else t
+  | <{\y:T, t1}> =>
+      if String.eqb x y then t else <{\y:T, [x:=s] t1}>
+  | <{t1 t2}> =>
+      <{([x:=s] t1) ([x:=s] t2)}>
+  | <{true}> =>
+      <{true}>
+  | <{false}> =>
+      <{false}>
+  | <{if t1 then t2 else t3}> =>
+      <{if ([x:=s] t1) then ([x:=s] t2) else ([x:=s] t3)}>
+  end *)
+
+(* Inductive tm : Set :=
+    tm_var : string -> tm
+  | tm_app : tm -> tm -> tm
+  | tm_abs : string -> ty -> tm -> tm
+  | tm_true : tm
+  | tm_false : tm
+  | tm_if : tm -> tm -> tm -> tm. *)
+
+Print subst.
 Inductive substi (s : tm) (x : string) : tm -> tm -> Prop :=
   | s_var1 :
       substi s x (tm_var x) s
-  (* FILL IN HERE *)
+  | s_var2 : forall y,
+      x <> y ->
+      substi s x (tm_var y) (tm_var y)
+  | s_abs1 : forall T t,
+      substi s x (tm_abs x T t) (tm_abs x T t)
+  | s_abs2 : forall y T t t',
+      x <> y ->
+      substi s x t t' ->
+      substi s x (tm_abs y T t) (tm_abs y T t')
+  | s_app : forall t1 t1' t2 t2',
+      substi s x t1 t1' ->
+      substi s x t2 t2' -> 
+      substi s x (tm_app t1 t2) (tm_app t1' t2')
+  | s_true :
+      substi s x tm_true tm_true
+  | s_false :
+      substi s x tm_false tm_false
+  | s_if: forall t1 t1' t2 t2' t3 t3',
+      substi s x t1 t1' ->
+      substi s x t2 t2' ->
+      substi s x t3 t3' ->
+      substi s x (tm_if t1 t2 t3) (tm_if t1' t2' t3')
 .
 
 Hint Constructors substi : core.
@@ -468,7 +517,21 @@ Hint Constructors substi : core.
 Theorem substi_correct : forall s x t t',
   <{ [x:=s]t }> = t' <-> substi s x t t'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  split.
+  - generalize dependent t'. induction t; intros; subst; simpl; auto.
+    + destruct (x0 =? s0)%string eqn : E.
+      * rewrite String.eqb_eq in E; subst. auto.
+      * rewrite String.eqb_neq in E; subst. auto.
+    + destruct (x0 =? s0)%string eqn : E.
+      * rewrite String.eqb_eq in E; subst. auto.
+      * rewrite String.eqb_neq in E; subst. auto.
+  - intros. induction H; subst; simpl; auto.
+    + rewrite String.eqb_refl. auto.
+    + rewrite <- String.eqb_neq in H. rewrite H. auto.
+    + rewrite String.eqb_refl. auto.
+    + rewrite <- String.eqb_neq in H. rewrite H. auto.
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
@@ -662,13 +725,24 @@ Lemma step_example5 :
        <{idBBBB idBB idB}>
   -->* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step.
+  - apply ST_App1; auto.
+  - eapply multi_step.
+    + apply ST_AppAbs; auto.
+    + simpl. apply multi_refl.
+Qed.
 
 Lemma step_example5_with_normalize :
        <{idBBBB idBB idB}>
   -->* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step.
+  - apply ST_App1; auto.
+  - eapply multi_step.
+    + apply ST_AppAbs; auto.
+    + simpl. apply multi_refl.
+Qed.
+
 (** [] *)
 
 (* ################################################################# *)
@@ -796,7 +870,12 @@ Example typing_example_2_full :
           (y (y x)) \in
     (Bool -> (Bool -> Bool) -> Bool).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply T_Abs. apply T_Abs. eapply T_App.
+  - apply T_Var. apply t_update_eq.
+  - eapply T_App.
+    + apply T_Var. apply t_update_eq.
+    + apply T_Var. apply t_update_neq. intros; discriminate.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (typing_example_3)
@@ -818,7 +897,15 @@ Example typing_example_3 :
                (y (x z)) \in
       T.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eexists. repeat apply T_Abs. eapply T_App.
+  - apply T_Var. eapply eq_trans.
+    + apply update_neq. intros; discriminate.
+    + apply update_eq.
+  - eapply T_App.
+    + apply T_Var. eapply eq_trans; try (apply update_neq; intros; discriminate).
+      eapply eq_trans; try (apply update_neq; intros; discriminate). apply update_eq.
+    + apply T_Var. apply update_eq.
+Qed.
 (** [] *)
 
 (** We can also show that some terms are _not_ typable.  For example,
@@ -860,7 +947,18 @@ Example typing_nonexample_3 :
         empty |--
           \x:S, x x \in T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. destruct H as [S [T H]].
+  inversion H; subst; clear H.
+  inversion H5; subst; clear H5.
+  inversion H2; subst; clear H2.
+  inversion H1; subst; clear H1.
+  inversion H4; subst; clear H4.
+  inversion H1; subst; clear H1.
+  inversion H0; subst; clear H0.
+  generalize dependent T1. induction T2; intros.
+  - inversion H.
+  - inversion H; subst. apply IHT2_1 in H1. auto.
+Qed.
 (** [] *)
 
 End STLC.

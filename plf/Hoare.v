@@ -1258,7 +1258,7 @@ Theorem invalid_triple : ~ forall (a : aexp) (n : nat),
 Proof.
   unfold hoare_triple.
   intros H.
-  specialize H with (a := X) (n := 0).
+  specialize H with (a := AId "X") (n := 0).
   assert (Aexp_of_aexp Y (Y !-> 3; X !-> 3) = Aexp_of_nat 0 (Y !-> 3; X !-> 3)).
   { apply H with (st := empty_st).
     - apply E_Seq with (X !-> 3); try (apply E_Asgn; auto).

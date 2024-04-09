@@ -27,7 +27,6 @@
     [UseTactics]. *)
 
 From Coq Require Import Arith.Arith.
-
 From PLF Require Import Maps.
 From PLF Require Import Smallstep.
 From PLF Require Import LibTactics.
@@ -35,8 +34,7 @@ From PLF Require Stlc.
 From PLF Require Imp.
 
 From Coq Require Import Lists.List.
-
-
+Import Nat.
 (* ################################################################# *)
 (** * Basic Features of Proof Search *)
 
@@ -1035,6 +1033,8 @@ Hint Resolve store_weakening extends_refl : core.
     optimized proof script.  The resulting optimized proof script for
     the preservation theorem appears afterwards. *)
 
+From Coq Require Import Nat.
+
 Theorem preservation : forall ST t t' T st st',
   empty ; ST |-- t \in T ->
   store_well_typed ST st ->
@@ -1138,8 +1138,8 @@ Proof.
        We'll come back to this proof case further on. *)
         unfold store_Tlookup. rewrite <- H. rewrite* app_nth2.
     (* Last, we replace [apply ..; assumption] with [apply* ..] *)
-        rewrite minus_diag. simpl. reflexivity.
-    (* To justify the inequality, there is no need to call [rewrite <- H],
+        rewrite sub_diag. simpl. reflexivity.
+    (* To justify the inequaity, there is no need to call [rewrite <- H],
        because the tactic [lia] is able to exploit [H] on its own.
        So, only the rewriting of [app_length] and the call to the
        tactic [lia] remain, with a call to [simpl] to unfold the

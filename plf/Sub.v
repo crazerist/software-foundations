@@ -6,6 +6,7 @@ From PLF Require Import Maps.
 From PLF Require Import Types.
 From PLF Require Import Smallstep.
 Set Default Goal Selector "!".
+Import PeanoNat.Nat.
 
 (* ################################################################# *)
 (** * Concepts *)
@@ -439,19 +440,19 @@ Definition manual_grade_for_arrow_sub_wrong : option (nat*string) := None.
     ([A], [B], and [C] here are base types like [Bool], [Nat], etc.)
 
     - [T->S <: T->S]
-
+      true
     - [Top->U <: S->Top]
-
+      true
     - [(C->C) -> (A*B)  <:  (C->C) -> (Top*B)]
-
+      true
     - [T->T->U <: S->S->V]
-
+      true
     - [(T->T)->U <: (S->S)->V]
-
+      false
     - [((T->S)->T)->U <: ((S->T)->S)->V]
-
+      true
     - [S*V <: T*U]
-
+      false
     [] *)
 
 (** **** Exercise: 2 stars, standard (subtype_order)
@@ -482,27 +483,28 @@ Definition manual_grade_for_subtype_order : option (nat*string) := None.
       forall S T,
           S <: T  ->
           S->S   <:  T->T
-
+      false
       forall S,
            S <: A->A ->
            exists T,
               S = T->T  /\  T <: A
-
+      true
       forall S T1 T2,
            (S <: T1 -> T2) ->
            exists S1 S2,
               S = S1 -> S2  /\  T1 <: S1  /\  S2 <: T2 
-
+      true
       exists S,
            S <: S->S 
-
+      false
       exists S,
            S->S <: S  
-
+      true
       forall S T1 T2,
            S <: T1*T2 ->
            exists S1 S2,
-              S = S1*S2  /\  S1 <: T1  /\  S2 <: T2  
+              S = S1*S2  /\  S1 <: T1  /\  S2 <: T2
+      true
 *)
 
 (* Do not modify the following line: *)
@@ -513,31 +515,31 @@ Definition manual_grade_for_subtype_instances_tf_2 : option (nat*string) := None
 
     Which of the following statements are true, and which are false?
     - There exists a type that is a supertype of every other type.
-
+      true
     - There exists a type that is a subtype of every other type.
-
+      false
     - There exists a pair type that is a supertype of every other
       pair type.
-
+      true
     - There exists a pair type that is a subtype of every other
       pair type.
-
+      false
     - There exists an arrow type that is a supertype of every other
       arrow type.
-
+      false
     - There exists an arrow type that is a subtype of every other
       arrow type.
-
+      false
     - There is an infinite descending chain of distinct types in the
       subtype relation---that is, an infinite sequence of types
       [S0], [S1], etc., such that all the [Si]'s are different and
       each [S(i+1)] is a subtype of [Si].
-
+      true
     - There is an infinite _ascending_ chain of distinct types in
       the subtype relation---that is, an infinite sequence of types
       [S0], [S1], etc., such that all the [Si]'s are different and
       each [S(i+1)] is a supertype of [Si].
-
+      false
 *)
 
 (* Do not modify the following line: *)
@@ -555,6 +557,8 @@ Definition manual_grade_for_subtype_concepts_tf : option (nat*string) := None.
          ~(T = Bool \/ exists n, T = Base n) ->
          exists S,
             S <: T  /\  S <> T
+    true, when the T has the type of Top, then T <> Bool and don't exists n,
+    let T = Base n. But forall S， S <: Top.
 *)
 
 (* Do not modify the following line: *)
@@ -570,7 +574,7 @@ Definition manual_grade_for_proper_subtypes : option (nat*string) := None.
        empty |-- (\p:T*Top. p.fst) ((\z:A.z), unit) \in A->A
 
    - What is the _largest_ type [T] that makes the same assertion true?
-
+    T has the type of A -> A
 *)
 
 (* Do not modify the following line: *)
@@ -584,7 +588,7 @@ Definition manual_grade_for_small_large_1 : option (nat*string) := None.
        empty |-- (\p:(A->A * B->B). p) ((\z:A.z), (\z:B.z)) \in T
 
    - What is the _largest_ type [T] that makes the same assertion true?
-
+    T has the type of A->A * B->B
 *)
 
 (* Do not modify the following line: *)
@@ -598,7 +602,7 @@ Definition manual_grade_for_small_large_2 : option (nat*string) := None.
        a:A |-- (\p:(A*T). (p.snd) (p.fst)) (a, \z:A.z) \in A
 
    - What is the _largest_ type [T] that makes the same assertion true?
-
+     T has the type of A->A
     [] *)
 
 
@@ -612,7 +616,7 @@ Definition manual_grade_for_small_large_2 : option (nat*string) := None.
 
    - What is the _largest_ type [T] that makes the same
      assertion true?
-
+    T has the type of A->Top
 *)
 
 (* Do not modify the following line: *)
@@ -626,6 +630,7 @@ Definition manual_grade_for_small_large_4 : option (nat*string) := None.
 
       exists S t,
         empty |-- (\x:T. x x) t \in S
+  dont exist T
 *)
 
 (* Do not modify the following line: *)
@@ -638,6 +643,7 @@ Definition manual_grade_for_smallest_1 : option (nat*string) := None.
     assertion true?
 
       empty |-- (\x:Top. x) ((\z:A.z) , (\z:B.z)) \in T
+    T has the type of A->A * B->B
 *)
 
 (* Do not modify the following line: *)
@@ -651,7 +657,9 @@ Definition manual_grade_for_smallest_2 : option (nat*string) := None.
     T]?  (We consider two types to be different if they are written
     differently, even if each is a subtype of the other.  For example,
     [{x:A,y:B}] and [{y:B,x:A}] are different.)
-
+    {x:A, y:C->C} {y:C->C, x:A} {x:Top, y:C->C} {y:C->C, x:Top}
+    {x:A, y:C->Top} {y:C->TOp, x:A} {x:Top, y:C->Top} {y:C->Top, x:Top}
+    {x:A} {x:Top} {y:C->C} {y:C->Top}
     [] *)
 
 (** **** Exercise: 2 stars, standard (pair_permutation)
@@ -669,7 +677,7 @@ Definition manual_grade_for_smallest_2 : option (nat*string) := None.
                                    T1*T2 <: T2*T1
 
     for products.  Is this a good idea? Briefly explain why or why not.
-
+    No, only records can ignore the order
 *)
 
 (* Do not modify the following line: *)
@@ -820,6 +828,10 @@ Inductive value : tm -> Prop :=
       value <{false}>
   | v_unit :
       value <{unit}>
+  | v_pair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      value <{(v1, v2)}>
 .
 
 Hint Constructors value : core.
@@ -844,6 +856,27 @@ Inductive step : tm -> tm -> Prop :=
   | ST_If : forall t1 t1' t2 t3,
       t1 --> t1' ->
       <{if t1 then t2 else t3}> --> <{if t1' then t2 else t3}>
+  | ST_Pair1 : forall t1 t1' t2,
+      t1 --> t1' ->
+      <{(t1, t2)}> --> <{(t1', t2)}>
+  | ST_Pair2 : forall v1 t2 t2',
+      value v1 ->
+      t2 --> t2' ->
+      <{(v1, t2)}> --> <{(v1, t2')}>
+  | ST_Fst1 : forall t1 t1',
+      t1 --> t1' ->
+      <{t1.fst}> --> <{t1'.fst}>
+  | ST_FstPair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      <{(v1, v2).fst}> --> <{v1}>
+  | ST_Snd1 : forall t1 t1',
+      t1 --> t1' ->
+      <{t1.snd}> --> <{t1'.snd}>
+  | ST_SndPair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      <{(v1, v2).snd}> --> <{v2}>
 where "t '-->' t'" := (step t t').
 
 Hint Constructors step : core.
@@ -869,6 +902,10 @@ Inductive subtype : ty -> ty -> Prop :=
       S <: T
   | S_Top : forall S,
       S <: <{Top}>
+  | S_Prod : forall S1 S2 T1 T2,
+      S1 <: T1 ->
+      S2 <: T2 ->
+      <{S1 * S2}> <: <{T1 * T2}>
   | S_Arrow : forall S1 S2 T1 T2,
       T1 <: S1 ->
       S2 <: T2 ->
@@ -898,7 +935,7 @@ Notation Integer := <{Base "Integer"}>.
 
 Example subtyping_example_0 :
   <{C->Bool}> <: <{C->Top}>.
-Proof. auto. Qed.
+Proof. info_auto. Qed.
 
 (** **** Exercise: 2 stars, standard, optional (subtyping_judgements)
 
@@ -915,24 +952,28 @@ Proof. auto. Qed.
     Student := { name : String ; gpa : Float }
     Employee := { name : String ; ssn : Integer }
 *)
-Definition Person : ty
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
-Definition Student : ty
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
-Definition Employee : ty
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition Person : ty :=
+  <{String * Top * Top}>.
+Definition Student : ty :=
+  <{String * Float * Top}>.
+Definition Employee : ty :=
+  <{String * Top * Integer}>.
 
 (** Now use the definition of the subtype relation to prove the following: *)
 
+Set Keyed Unification.
 Example sub_student_person :
   Student <: Person.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold Student, Person. auto.
+Qed.
 
 Example sub_employee_person :
   Employee <: Person.
 Proof.
-(* FILL IN HERE *) Admitted.
+ unfold Employee, Person. auto.
+Qed.
+
 (** [] *)
 
 (** The following facts are mostly easy to prove in Coq.  To get
@@ -943,14 +984,16 @@ Proof.
 Example subtyping_example_1 :
   <{Top->Student}> <:  <{(C->C)->Person}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  apply S_Arrow... apply sub_student_person.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (subtyping_example_2) *)
 Example subtyping_example_2 :
   <{Top->Person}> <: <{Person->Top}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  apply S_Arrow...
+Qed.
 (** [] *)
 
 End Examples.
@@ -995,6 +1038,17 @@ Inductive has_type : context -> tm -> ty -> Prop :=
       Gamma |-- t1 \in T1 ->
       T1 <: T2 ->
       Gamma |-- t1 \in T2
+    (* pairs *)
+  | T_Pair : forall Gamma t1 t2 T1 T2,
+      Gamma |-- t1 \in T1 ->
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- (t1, t2) \in (T1 * T2)
+  | T_Fst : forall Gamma t0 T1 T2,
+      Gamma |-- t0 \in (T1 * T2) ->
+      Gamma |-- t0.fst \in T1
+  | T_Snd : forall Gamma t0 T1 T2,
+      Gamma |-- t0 \in (T1 * T2) ->
+      Gamma |-- t0.snd \in T2
 
 where "Gamma '|--' t '\in' T" := (has_type Gamma t T).
 
@@ -1009,24 +1063,38 @@ Import Examples.
 
 (** **** Exercise: 1 star, standard, optional (typing_example_0) *)
 (* empty |-- ((\z:A.z), (\z:B.z)) \in (A->A * B->B) *)
-(* FILL IN HERE
-
-    [] *)
-
+Example typing_example_0 :
+  empty |-- ((\z:A,z), (\z:B,z)) \in ((A->A) * (B->B)).
+Proof.
+  auto.
+Qed.
 (** **** Exercise: 2 stars, standard, optional (typing_example_1) *)
 (* empty |-- (\x:(Top * B->B). x.snd) ((\z:A.z), (\z:B.z))
          \in B->B *)
-(* FILL IN HERE
-
-    [] *)
+Example typing_example_1 :
+  empty |-- (\x:(Top * (B->B)), x.snd) ((\z:A,z), (\z:B,z)) \in (B -> B).
+Proof.
+  eapply T_App.
+  - apply T_Abs. eapply T_Snd. apply T_Var. reflexivity.
+  - apply T_Pair; auto. eapply T_Sub; auto. apply T_Abs.
+    apply T_Var. reflexivity.
+Qed.
 
 (** **** Exercise: 2 stars, standard, optional (typing_example_2) *)
 (* empty |-- (\z:(C->C)->(Top * B->B). (z (\x:C.x)).snd)
               (\z:C->C. ((\z:A.z), (\z:B.z)))
          \in B->B *)
-(* FILL IN HERE
-
-    [] *)
+Example typing_example_2 :
+  empty |-- (\z:(C->C)->(Top * (B->B)), (z (\x:C,x)).snd)
+    (\z:C->C, ((\z:A,z), (\z:B,z))) \in (B->B).
+Proof.
+  eapply T_App.
+  - apply T_Abs. eapply T_Snd. eapply T_App.
+    + apply T_Var. reflexivity.
+    + auto.
+  - apply T_Abs. apply T_Pair; auto. eapply T_Sub; auto. apply T_Abs.
+    apply T_Var. reflexivity.
+Qed.
 
 End Examples2.
 
@@ -1064,7 +1132,10 @@ Lemma sub_inversion_Bool : forall U,
 Proof with auto.
   intros U Hs.
   remember <{Bool}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; try solve_by_invert 1; auto.
+  (* only S_Arrow left *)
+  apply IHHs2 in HeqV as H. subst. auto.
+Qed. 
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (sub_inversion_arrow) *)
@@ -1076,7 +1147,16 @@ Proof with eauto.
   intros U V1 V2 Hs.
   remember <{V1->V2}> as V.
   generalize dependent V2. generalize dependent V1.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; intros; try solve_by_invert 1.
+  - (* Refl*)
+    exists V1, V2. split...
+  - (* S_Trans *)
+    apply IHHs2 in HeqV. destruct HeqV as [U1 [U2 [H1 [H2 H3]]]].
+    apply IHHs1 in H1. destruct H1 as [U3 [U4 [H4 [H5 H6]]]].
+    exists U3, U4. split...
+  - (* S_Arrow *)
+    inversion HeqV; subst. exists S1, S2. split...
+Qed.
 (** [] *)
 
 (** There are additional _inversion lemmas_ for the other types:
@@ -1091,7 +1171,9 @@ Lemma sub_inversion_Unit : forall U,
 Proof with auto.
   intros U Hs.
   remember <{Unit}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; try solve_by_invert 1...
+  apply IHHs2 in HeqV as H; subst...
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (sub_inversion_Base) *)
@@ -1101,7 +1183,9 @@ Lemma sub_inversion_Base : forall U s,
 Proof with auto.
   intros U s Hs.
   remember <{Base s}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; try solve_by_invert 1...
+  apply IHHs2 in HeqV as H; subst...
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (sub_inversion_Top) *)
@@ -1111,7 +1195,49 @@ Lemma sub_inversion_Top : forall U,
 Proof with auto.
   intros U Hs.
   remember <{Top}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; try solve_by_invert 1...
+  apply IHHs1 in HeqV as H; subst...
+Qed.
+
+Lemma sub_inversion_Prod : forall U V1 V2,
+  U <: <{V1 * V2 }> ->
+    exists U1 U2,
+    U = <{U1*U2}> /\ U1 <: V1 /\ U2 <: V2.
+Proof with eauto.
+  intros U V1 V2 Hs.
+  remember <{V1*V2}> as V.
+  generalize dependent V2. generalize dependent V1.
+  induction Hs; intros; try solve_by_invert 1.
+  - (* S_Refl *)
+    exists V1, V2. split...
+  - (* S_Trans *)
+    apply IHHs2 in HeqV. destruct HeqV as [U1 [U2 [H1 [H2 H3]]]].
+    apply IHHs1 in H1. destruct H1 as [U3 [U4 [H4 [H5 H6]]]].
+    exists U3, U4. split...
+  - (* S_Prod*)
+    inversion HeqV; subst. exists S1, S2; split...
+Qed.
+
+Lemma sub_antisym : forall U V,
+  U <: V -> V <: U ->
+  U = V.
+Proof with eauto.
+  intros; induction H.
+  - (* S_Refl *)
+    reflexivity.
+  - (* S_Trans *)
+    assert (U <: S)... assert (T <: U)... apply IHsubtype1 in H2.
+    apply IHsubtype2 in H3. subst...
+  - (* S_Top *)
+    apply sub_inversion_Top in H0...
+  - (* S_Prod *)
+    apply sub_inversion_Prod in H0. destruct H0 as [U1 [U2 [H2 [H3 H4]]]].
+    injection H2; intros; subst. f_equal; auto.
+  - (* S_Arrow *)
+    apply sub_inversion_arrow in H0. destruct H0 as [U1 [U2 [H2 [H3 H4]]]].
+    injection H2; intros; subst. f_equal; [ symmetry | idtac]; auto.
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
@@ -1148,7 +1274,12 @@ Lemma canonical_forms_of_arrow_types : forall Gamma s T1 T2,
   exists x S1 s2,
      s = <{\x:S1,s2}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros. remember <{T1 -> T2 }> as T. generalize dependent T1.
+  generalize dependent T2. induction H; intros; try solve_by_invert...
+  - (* T_Sub *)
+  subst. apply sub_inversion_arrow in H1. destruct H1 as [U1 [U2 [H2 [H3 H4]]]].
+  eapply IHhas_type...
+Qed.
 (** [] *)
 
 (** Similarly, the canonical forms of type [Bool] are the constants
@@ -1164,6 +1295,18 @@ Proof with eauto.
   induction Hty; try solve_by_invert...
   - (* T_Sub *)
     subst. apply sub_inversion_Bool in H. subst...
+Qed.
+
+Lemma canonical_forms_of_Pair : forall Gamma s T1 T2,
+  Gamma |-- s \in (T1 * T2) ->
+  value s ->
+  exists t1 t2,
+    s = <{ (t1, t2) }>.
+Proof with eauto.
+  intros. remember <{ T1 * T2 }> as T. generalize dependent T1.
+  generalize dependent T2. induction H; intros; try solve_by_invert...
+  - subst. apply sub_inversion_Prod in H1. destruct H1 as [U1 [U2 [H2 [H3 H4]]]]; subst.
+    eapply IHhas_type...
 Qed.
 
 (* ================================================================= *)
@@ -1252,7 +1395,25 @@ Proof with eauto.
     + (* t1 is a value *) eauto.
     + apply canonical_forms_of_Bool in Ht1; [|assumption].
       destruct Ht1; subst...
-    + destruct H. rename x into t1'. eauto. 
+    + destruct H. rename x into t1'. eauto.
+  - (* T_Pair *)
+    destruct IHHt1...
+    + (* t1 is a value *)
+      destruct IHHt2...
+      * (* t2 steps *)
+        destruct H0...
+    + (* t1 steps *)
+      destruct H...
+  - (* T_Fst *)
+    destruct IHHt...
+    + apply canonical_forms_of_Pair in Ht... destruct Ht as [t1 [t2 Ht]]; subst.
+      inversion H...
+    + destruct H...
+  - (* T_Snd *)
+    destruct IHHt...
+    + apply canonical_forms_of_Pair in Ht... destruct Ht as [t1 [t2 Ht]]; subst.
+      inversion H...
+    + destruct H...
 Qed.
 
 (* ================================================================= *)
@@ -1314,12 +1475,17 @@ Proof with eauto.
   Qed.
 
 (** **** Exercise: 3 stars, standard, optional (typing_inversion_var) *)
+
 Lemma typing_inversion_var : forall Gamma (x:string) T,
   Gamma |-- x \in T ->
   exists S,
     Gamma x = Some S /\ S <: T.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros. remember (tm_var x) as t.
+  induction H; inversion Heqt; subst...
+  - (* T_Sub *)
+    destruct IHhas_type... destruct H2...
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (typing_inversion_app) *)
@@ -1329,7 +1495,11 @@ Lemma typing_inversion_app : forall Gamma t1 t2 T2,
     Gamma |-- t1 \in (T1->T2) /\
     Gamma |-- t2 \in T1.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros. remember <{ t1 t2 }> as t.
+  induction H; inversion Heqt; subst...
+  - (* T_Sub *)
+    destruct IHhas_type... destruct H2...
+Qed.
 (** [] *)
 
 Lemma typing_inversion_unit : forall Gamma T,
@@ -1339,6 +1509,43 @@ Proof with eauto.
   intros Gamma T Htyp. remember <{ unit }> as tu.
   induction Htyp;
     inversion Heqtu; subst; intros...
+Qed.
+
+Lemma typing_inversion_pair : forall Gamma t1 t2 T,
+  Gamma |-- (t1 , t2) \in T ->
+  exists T1 T2,
+    Gamma |-- t1 \in T1 /\
+    Gamma |-- t2 \in T2 /\
+    <{T1 * T2}> <: <{T}>.
+Proof with eauto.
+  intros. remember <{(t1, t2)}> as t.
+  induction H; inversion Heqt; subst...
+  - (* T_Sub *)
+    destruct IHhas_type... destruct H2 as [T3 [H2 [H3 H4]]].
+    exists x, T3...
+Qed.
+
+Lemma typing_inversion_fst : forall Gamma t T1,
+  Gamma |-- t.fst \in T1 ->
+  exists T2, 
+    Gamma |-- t \in (T1 * T2).
+Proof with eauto.
+  intros. remember <{t0.fst}> as tf.
+  induction H; inversion Heqtf; subst...
+  - (* T_Sub *)
+    destruct IHhas_type...
+Qed.
+
+
+Lemma typing_inversion_snd : forall Gamma t T2,
+  Gamma |-- t.snd \in T2 ->
+  exists T1, 
+    Gamma |-- t \in (T1 * T2).
+Proof with eauto.
+  intros. remember <{t0.snd}> as tf.
+  induction H; inversion Heqtf; subst...
+  - (* T_Sub *)
+    destruct IHhas_type...
 Qed.
 
 (** The inversion lemmas for typing and for subtyping between arrow
@@ -1355,7 +1562,7 @@ Proof with eauto.
   destruct Hty as [S2 [Hsub Hty1]].
   apply sub_inversion_arrow in Hsub.
   destruct Hsub as [U1 [U2 [Heq [Hsub1 Hsub2]]]].
-  injection Heq as Heq; subst...  Qed.
+  injection Heq as Heq; subst... Qed.
 
 (* ================================================================= *)
 (** ** Weakening *)
@@ -1399,7 +1606,23 @@ Proof.
   remember (x |-> U; Gamma) as Gamma'.
   generalize dependent Gamma.
   induction Ht; intros Gamma' G; simpl; eauto.
- (* FILL IN HERE *) Admitted.
+  - (* T_Var *)
+    destruct (String.eqb x x0) eqn : E.
+    + (* x = x0 *)
+      rewrite String.eqb_eq in E; subst. rewrite update_eq in H.
+      injection H as H; subst. apply weakening_empty. assumption.
+    + (* x <> x0 *)
+      rewrite String.eqb_neq in E; subst. rewrite update_neq in H; try assumption.
+      constructor; assumption.
+  - (* T_Abs *)
+    destruct (String.eqb x x0) eqn : E.
+    + (* x = x0 *)
+      rewrite String.eqb_eq in E; subst. constructor. 
+      rewrite update_shadow in Ht; assumption.
+    + (* x <> x0 *)
+      rewrite String.eqb_neq in E; subst. constructor. apply IHHt. 
+      apply update_permute; assumption.
+Qed.
 
 (* ================================================================= *)
 (** ** Preservation *)
@@ -1477,7 +1700,19 @@ Proof with eauto.
        and [eauto] takes care of them *)
     + (* ST_AppAbs *)
       destruct (abs_arrow _ _ _ _ _ HT1) as [HA1 HA2].
-      apply substitution_preserves_typing with T0... 
+      apply substitution_preserves_typing with T0...
+  - (* T_Fst *)
+    inversion HE; subst...
+    + (* ST_Fst1 *)
+      apply typing_inversion_pair in HT. destruct HT as [T3 [T4 [H2 [H3 H4]]]].
+      apply sub_inversion_Prod in H4. destruct H4 as [U1 [U2 [H4 [H5 H6]]]].
+      injection H4; intros; subst...
+  - (* T_Snd *)
+    inversion HE; subst...
+    + (* ST_Snd 1*)
+      apply typing_inversion_pair in HT. destruct HT as [T3 [T4 [H2 [H3 H4]]]].
+      apply sub_inversion_Prod in H4. destruct H4 as [U1 [U2 [H4 [H5 H6]]]].
+      injection H4; intros; subst...
 Qed.
 
 (* ================================================================= *)
@@ -1525,17 +1760,14 @@ Qed.
                     S1 <: T1     T1 <: S1      S2 <: T2
                     -----------------------------------    (T_Funny1)
                            Gamma |-- t \in T1->T2
-
     - Suppose we add the following reduction rule:
 
                              --------------------         (ST_Funny21)
                              unit --> (\x:Top. x)
-
     - Suppose we add the following subtyping rule:
 
                                ----------------          (S_Funny3)
                                Unit <: Top->Top
-
     - Suppose we add the following subtyping rule:
 
                                ----------------          (S_Funny4)
@@ -1599,6 +1831,8 @@ Definition manual_grade_for_variations : option (nat*string) := None.
 
 (* FILL IN HERE *)
 
+(* Already done in the previous code *)
+
 (* Do not modify the following line: *)
 Definition manual_grade_for_products_value_step : option (nat*string) := None.
 (* Do not modify the following line: *)
@@ -1626,32 +1860,36 @@ Definition TF P := P \/ ~P.
 Theorem formal_subtype_instances_tf_1a:
   TF (forall S T U V, S <: T -> U <: V ->
          <{T->S}> <: <{T->S}>).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1b) *)
 Theorem formal_subtype_instances_tf_1b:
   TF (forall S T U V, S <: T -> U <: V ->
          <{Top->U}> <: <{S->Top}>).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1c) *)
 Theorem formal_subtype_instances_tf_1c:
   TF (forall S T U V, S <: T -> U <: V ->
          <{(C->C)->(A*B)}> <: <{(C->C)->(Top*B)}>).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1d) *)
 Theorem formal_subtype_instances_tf_1d:
   TF (forall S T U V, S <: T -> U <: V ->
          <{T->(T->U)}> <: <{S->(S->V)}>).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1e) *)
@@ -1659,23 +1897,37 @@ Theorem formal_subtype_instances_tf_1e:
   TF (forall S T U V, S <: T -> U <: V ->
          <{(T->T)->U}> <: <{(S->S)->V}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  right. intro.
+  assert (<{Bool}> <: <{Top}>) as E by auto.
+  remember (H _ _ _ _ E E) as H1. clear HeqH1. clear H.
+  apply sub_inversion_arrow in H1. destruct H1 as [U1 [U2 [H0 [H2 H3]]]].
+  injection H0; intros; subst. clear E; clear H0; clear H3.
+  apply sub_inversion_arrow in H2. destruct H2 as [U1 [U2 [H0 [H1 H3]]]].
+  injection H0; intros; subst. apply sub_inversion_Top in H1. discriminate.
+Qed.
+ (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1f) *)
 Theorem formal_subtype_instances_tf_1f:
   TF (forall S T U V, S <: T -> U <: V ->
          <{((T->S)->T)->U}> <: <{((S->T)->S)->V}>).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
-(** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1g) *)
+(** **** Exercise: 1 star, stan
+dard, optional (formal_subtype_instances_tf_1g) *)
 Theorem formal_subtype_instances_tf_1g:
   TF (forall S T U V, S <: T -> U <: V ->
          <{S*V}> <: <{T*U}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intro.
+  assert (<{Bool}> <: <{Top}>) as E by auto.
+  remember (H _ _ _ _ E E) as H1. clear HeqH1; clear H; clear E.
+  apply sub_inversion_Prod in H1. destruct H1 as [U1 [U2 [H0 [H3 H4]]]].
+  injection H0; intros; subst. clear H0. apply sub_inversion_Top in H4. discriminate.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_instances_tf_2a) *)
@@ -1684,7 +1936,12 @@ Theorem formal_subtype_instances_tf_2a:
          S <: T ->
          <{S->S}> <: <{T->T}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intro.
+  assert (<{Bool}> <: <{Top}>) as E by auto.
+  remember (H _ _ E) as H1. clear HeqH1; clear E; clear H.
+  apply sub_inversion_arrow in H1. destruct H1 as [U1 [U2 [H0 [H2 H3]]]].
+  injection H0; intros; subst. apply sub_inversion_Top in H2. discriminate.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_instances_tf_2b) *)
@@ -1694,79 +1951,158 @@ Theorem formal_subtype_instances_tf_2b:
          exists T,
            S = <{T->T}> /\ T <: A).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intro.
+  assert (<{Top -> A}> <: <{A -> A}>) as E by auto.
+  remember (H _ E) as H1. clear HeqH1; clear H; clear E. destruct H1 as [T [H0 H2]].
+  injection H0; intros; subst. discriminate.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_instances_tf_2d)
 
     Hint: Assert a generalization of the statement to be proved and
     use induction on a type (rather than on a subtyping
-    derviation). *)
+    derviation)
+. *)
 Theorem formal_subtype_instances_tf_2d:
   TF (exists S,
          S <: <{S->S}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intro.
+  destruct H as [S H]. induction S;
+  try (apply sub_inversion_arrow in H;
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]; discriminate).
+  - (* Ty_Arrow *)
+    apply sub_inversion_arrow in H. destruct H as [U1 [U2 [H1 [H2 H3]]]].
+    injection H1; intros; subst. assert (U2 <: U1) by eauto. 
+    assert (U2 <: <{U2 -> U2}>) by eauto. auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_instances_tf_2e) *)
 Theorem formal_subtype_instances_tf_2e:
   TF (exists S,
          <{S->S}> <: S).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfa) *)
 Theorem formal_subtype_concepts_tfa:
   TF (exists T, forall S, S <: T).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfb) *)
 Theorem formal_subtype_concepts_tfb:
   TF (exists T, forall S, T <: S).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intros [T H].
+  assert (T = <{Bool}> \/ T <> <{Bool}>).
+  { destruct T; try (right; intro; discriminate). left. reflexivity. }
+  destruct H0.
+  - (* T = <{Bool}> *)
+    specialize H with <{Unit}>; subst. apply sub_inversion_Unit in H. discriminate.
+  - (* T <> <{Bool}> *)
+    specialize H with <{Bool}>; subst. apply sub_inversion_Bool in H. auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfc) *)
 Theorem formal_subtype_concepts_tfc:
   TF (exists T1 T2, forall S1 S2, <{S1*S2}> <: <{T1*T2}>).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  left...
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfd) *)
 Theorem formal_subtype_concepts_tfd:
   TF (exists T1 T2, forall S1 S2, <{T1*T2}> <: <{S1*S2}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intros [T1 [T2 H]].
+  assert (T1 = <{Bool}> \/ T1 <> <{Bool}>).
+  { destruct T1; try (right; intro; discriminate). left. reflexivity. }
+  destruct H0.
+  - (* T1 = <{Bool}> *)
+    specialize H with <{Unit}> T2; subst. apply sub_inversion_Prod in H.
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]. injection H1; intros; subst.
+    apply sub_inversion_Unit in H2. discriminate.
+  - (* T1 <> <{Bool}> *)
+    specialize H with <{Bool}> T2; subst. apply sub_inversion_Prod in H.
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]. injection H1; intros; subst.
+    apply sub_inversion_Bool in H2; subst. auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfe) *)
 Theorem formal_subtype_concepts_tfe:
   TF (exists T1 T2, forall S1 S2, <{S1->S2}> <: <{T1->T2}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intros [T1 [T2 H]].
+  assert (T1 = <{Bool}> \/ T1 <> <{Bool}>).
+  { destruct T1; try (right; intro; discriminate). left. reflexivity. }
+  destruct H0.
+  - (* T1 = <{Bool}> *)
+    specialize H with <{Unit}> T2; subst. apply sub_inversion_arrow in H.
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]. injection H1; intros; subst.
+    apply sub_inversion_Unit in H2. discriminate.
+  - (* T1 <> <{Bool}> *)
+    specialize H with <{Bool}> T2; subst. apply sub_inversion_arrow in H.
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]. injection H1; intros; subst.
+    apply sub_inversion_Bool in H2; subst. auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tff) *)
 Theorem formal_subtype_concepts_tff:
   TF (exists T1 T2, forall S1 S2, <{T1->T2}> <: <{S1->S2}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intros [T1 [T2 H]].
+  assert (T2 = <{Bool}> \/ T2 <> <{Bool}>).
+  { destruct T2; try (right; intro; discriminate). left. reflexivity. }
+  destruct H0.
+  - (* T1 = <{Bool}> *)
+    specialize H with T2 <{Unit}>; subst. apply sub_inversion_arrow in H.
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]. injection H1; intros; subst.
+    apply sub_inversion_Unit in H3. discriminate.
+  - (* T1 <> <{Bool}> *)
+    specialize H with T2 <{Bool}>; subst. apply sub_inversion_arrow in H.
+    destruct H as [U1 [U2 [H1 [H2 H3]]]]. injection H1; intros; subst.
+    apply sub_inversion_Bool in H3; subst. auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfg) *)
+Fixpoint sub_dec (n : nat) : ty := 
+  match n with
+  | O => <{Top}>
+  | S n' => let t := (sub_dec n') in <{Top * t}>
+  end.
 
 Theorem formal_subtype_concepts_tfg:
   TF (exists f : nat -> ty,
          (forall i j, i <> j -> f i <> f j) /\
          (forall i, f (S i) <: f i)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  left. exists sub_dec. split.
+  - (* left *)
+    intro. induction i; intros; simpl.
+    + (* i = O *)
+      destruct j; auto. intro. discriminate.
+    + (* i <> 0 *)
+      destruct j.
+      * (* j = 0 *)
+        simpl. intro. discriminate.
+      * (* j <> 0 *)
+        simpl. rewrite succ_inj_wd_neg in H. apply IHi in H.
+        intro. injection H0; intros; subst. auto.
+  - (* right *)
+    intro. induction i; simpl; auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (formal_subtype_concepts_tfh) *)
@@ -1775,7 +2111,23 @@ Theorem formal_subtype_concepts_tfh:
          (forall i j, i <> j -> f i <> f j) /\
          (forall i, f i <: f (S i))).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  left. exists (fun n => let t := sub_dec n in <{t -> Top}>). split.
+  - (* left *)
+    intro. induction i; intros; simpl.
+    + (* i = 0 *)
+      destruct j; auto. intro. discriminate.
+    + (* i <> 0 *)
+      destruct j.
+      * (* j = 0 *)
+        simpl. intro. discriminate.
+      * (* j <> 0 *)
+        simpl. rewrite succ_inj_wd_neg in H. apply IHi in H.
+        intro. injection H0; intros. simpl in H. rewrite H1 in H. auto.
+  - (* right *)
+    intro. induction i; intros; simpl; auto.
+    simpl in IHi. apply sub_inversion_arrow in IHi. destruct IHi as [U1 [U2 [H1 [H2 H3]]]].
+    injection H1; intros; subst. auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (formal_proper_subtypes) *)
@@ -1785,7 +2137,12 @@ Theorem formal_proper_subtypes:
          exists S,
            S <: T /\ S <> T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intro. specialize H with <{Bool * Bool}>. destruct H as [S [H1 H2]].
+  - intro. destruct H as [H | [H | H]]; try discriminate.
+    destruct H. discriminate.
+  - apply sub_inversion_Prod in H1. destruct H1 as [U1 [U2 [H3 [H4 H5]]]].
+    apply sub_inversion_Bool in H4. apply sub_inversion_Bool in H5. subst. auto.
+Qed.
 (** [] *)
 
 Definition smallest_largest HT :=
@@ -1810,7 +2167,31 @@ Theorem formal_small_large_1:
   (fun T =>
    empty |-- <{(\p:T*Top, p.fst) ((\z:A, z), unit)}> \in <{A->A}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  left. exists <{A -> A}>, <{A -> A}>. intros. split.
+  - (* Sufficiency *)
+    intros. assert (T = <{A -> A}>). { destruct H. apply sub_antisym; auto. }
+    clear H; subst. eapply T_App.
+    + apply T_Abs. eapply T_Fst. apply T_Var. apply update_eq.
+    + apply T_Pair; auto. apply T_Sub with <{ Unit }>; auto.
+  - (* Necessity *)
+    intros. apply typing_inversion_app in H. destruct H as [T1 [H1 H2]].
+    apply typing_inversion_abs in H1. destruct H1 as [S2 [H1 H3]].
+    apply sub_inversion_arrow in H1. destruct H1 as [U1 [U2 [H4 [H5 H6]]]].
+    injection H4; intros; subst.
+    apply sub_inversion_Prod in H5. destruct H5 as [U1 [U3 [H0 [H1 H5]]]].
+    subst. clear H4; clear H5.
+    apply typing_inversion_fst in H3. destruct H3 as [T2 H3].
+    apply typing_inversion_var in H3. destruct H3 as [S [H0 H3]].
+    rewrite update_eq in H0. injection H0; intros; subst; clear H0.
+    apply sub_inversion_Prod in H3. destruct H3 as [U4 [U5 [H0 [H3 H4]]]].
+    injection H0; intros; subst. apply sub_inversion_Top in H4; subst; clear H0.
+    apply typing_inversion_pair in H2. destruct H2 as [T1 [T2 [H0 [H2 H4]]]].
+    apply sub_inversion_Prod in H4. destruct H4 as [U5 [U6 [H4 [H5 H7]]]].
+    injection H4; intros; subst. clear H4;clear H2; clear H7.
+    apply typing_inversion_abs in H0. destruct H0 as [S2 [H0 H2]].
+    apply typing_inversion_var in H2. destruct H2 as [S [H2 H4]].
+    rewrite update_eq in H2. injection H2; intros; subst. clear H2. split; eauto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced, optional (formal_small_large_2) *)
@@ -1819,7 +2200,26 @@ Theorem formal_small_large_2:
   (fun T =>
    empty |-- <{(\p:(A->A)*(B->B), p) ((\z:A, z), (\z:B, z))}> \in T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+   left. exists <{(A->A) * (B->B)}>, <{Top}>. split.
+  - (* Sufficiency *)
+    intros []. eapply T_App.
+    + apply T_Abs. eapply T_Sub with <{ (A -> A) * (B -> B) }>; auto.
+    + apply T_Pair; auto.
+  - (* Necessity *)
+    intros. apply typing_inversion_app in H. destruct H as [T1 [H0 H1]].
+    apply typing_inversion_abs in H0. destruct H0 as [S2 [H0 H2]].
+    apply sub_inversion_arrow in H0. destruct H0 as [U1 [U2 [H0 [H3 H4]]]].
+    injection H0; intros; subst. clear H0.
+    apply typing_inversion_var in H2. destruct H2 as [S [H0 H2]]. 
+    rewrite update_eq in H0. injection H0; intros; subst. clear H0.
+    apply typing_inversion_pair in H1. destruct H1 as [T2 [T3 [H0 [H1 H5]]]].
+    apply typing_inversion_abs in H0. destruct H0 as [S2 [H0 H6]].
+    apply typing_inversion_var in H6. destruct H6 as [S [H6 H7]].
+    rewrite update_eq in H6. injection H6; intros; subst; clear H6.
+    apply typing_inversion_abs in H1. destruct H1 as [S3 [H1 H8]].
+    apply typing_inversion_var in H8. destruct H8 as [S4 [H8 H9]].
+    rewrite update_eq in H8; injection H8; intros; subst; clear H8. split; eauto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced, optional (formal_small_large_3) *)
@@ -1828,7 +2228,42 @@ Theorem formal_small_large_3:
   (fun T =>
    (a |-> A) |-- <{(\p:A*T, (p.snd) (p.fst)) (a, \z:A, z)}> \in A).
 Proof.
-  (* FILL IN HERE *) Admitted.
+ left. exists <{(A -> A)}>, <{(A -> A)}>. split.
+  - (* Sufficiency *)
+    intros []. assert (T = <{A -> A}>). { apply sub_antisym; auto. }
+    subst; clear H; clear H0. eapply T_App.
+    + apply T_Abs. eapply T_App.
+      * eapply T_Snd. apply T_Var. rewrite update_eq. reflexivity.
+      * eapply T_Fst. apply T_Var. rewrite update_eq. reflexivity.
+    + auto.
+  - (* Necessity *)
+    intros. apply typing_inversion_app in H. destruct H as [T1 [H0 H1]].
+    apply typing_inversion_abs in H0. destruct H0 as [S2 [H2 H3]].
+    apply sub_inversion_arrow in H2. destruct H2 as [U1 [U2 [H0 [H2 H4]]]].
+    injection H0; intros; subst; clear H0.
+    apply typing_inversion_app in H3. destruct H3 as [T2 [H0 H5]].
+    apply typing_inversion_snd in H0. destruct H0 as [T3 H0].
+    apply typing_inversion_var in H0. destruct H0 as [S [H0 H6]].
+    rewrite update_eq in H0. injection H0; intros; subst; clear H0.
+    apply sub_inversion_Prod in H6. destruct H6 as [U3 [U4 [H0 [H6 H7]]]].
+    injection H0; intros; subst; clear H0.
+    apply typing_inversion_fst in H5. destruct H5 as [T4 H5].
+    apply typing_inversion_var in H5. destruct H5 as [S [H0 H5]].
+    rewrite update_eq in H0. injection H0; intros; subst; clear H0.
+    apply sub_inversion_Prod in H5. destruct H5 as [U5 [U6 [H0 [H3 H5]]]].
+    injection H0; intros; subst; clear H0.
+    apply typing_inversion_pair in H1. destruct H1 as [T5 [T6 [H0 [H1 H8]]]].
+    apply typing_inversion_var in H0. destruct H0 as [S [H0 H9]].
+    rewrite update_eq in H0. injection H0; intros; subst; clear H0.
+    apply typing_inversion_abs in H1. destruct H1 as [S2 [H0 H1]].
+    apply typing_inversion_var in H1. destruct H1 as [S [H1 H10]].
+    rewrite update_eq in H1. injection H1; intros; subst; clear H1. split.
+    + assert (<{ T5 * T6 }> <: <{ A * U6 }>) by eauto. apply sub_inversion_Prod in H.
+      destruct H as [U7 [U8 [H11 [H12 H13]]]].
+      injection H11; intros; subst; clear H11.
+      assert (<{ A -> A }> <: <{ A -> S2 }>) by eauto. eauto.
+    + eauto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced, optional (formal_small_large_4) *)
@@ -1838,7 +2273,49 @@ Theorem formal_small_large_4:
    exists S,
      empty |-- <{\p:A*T, (p.snd) (p.fst)}> \in S).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. right. left. split.
+  - (* There doesn't exist a smallest *)
+    intro. destruct H as [TS H]. pose proof H as H'.
+    specialize H with <{A -> Bool}>. specialize H' with <{ A-> Unit}>.
+    destruct H. clear H. destruct H'. clear H.
+    assert (exists S : ty, empty |-- \ "p" : A * (A -> Bool), <{p.snd p.fst}> \in S).
+    { exists <{(A * (A -> Bool)) -> Bool}>. apply T_Abs. eapply T_App.
+      - eapply T_Snd. apply T_Var. rewrite update_eq. reflexivity.
+      - eapply T_Fst. apply T_Var. rewrite update_eq. reflexivity. }
+    apply H0 in H. clear H0.
+    assert (exists S : ty, empty |-- \ "p" : A * (A -> Unit), <{p.snd p.fst}> \in S).
+    {  exists <{(A * (A -> Unit)) -> Unit}>. apply T_Abs. eapply T_App.
+      - eapply T_Snd. apply T_Var. rewrite update_eq. reflexivity.
+      - eapply T_Fst. apply T_Var. rewrite update_eq. reflexivity. }
+    apply H1 in H0. clear H1.
+    apply sub_inversion_arrow in H. destruct H as [U1 [U2 [H1 [H2 H3]]]].
+    apply sub_inversion_arrow in H0. destruct H0 as [U3 [U4 [H0 [H4 H5]]]].
+    rewrite H0 in H1. injection H1; intros; subst; clear H1.
+    apply sub_inversion_Bool in H3. apply sub_inversion_Unit in H5. subst. discriminate.
+  - (* There exists a biggest *)
+    exists <{A -> Top}>. intros. split.
+    + (* Sufficiency *)
+      intros. apply sub_inversion_arrow in H. destruct H as [U1 [U2 [H0 [H1 H2]]]]. 
+      subst. exists <{(A * (U1 -> U2)) -> U2}>. apply T_Abs. eapply T_App.
+      * eapply T_Snd. apply T_Var. rewrite update_eq. reflexivity.
+      * eapply T_Sub.
+        { eapply T_Fst. apply T_Var. rewrite update_eq. reflexivity. }
+        { auto. }
+    + (* Necessity *)
+      intros [S H]. apply typing_inversion_abs in H. destruct H as [S2 [H0 H1]].
+      apply typing_inversion_app in H1. destruct H1 as [T1 [H1 H2]].
+      apply typing_inversion_snd in H1. destruct H1 as [T2 H1].
+      apply typing_inversion_var in H1. destruct H1 as [S1 [H1 H3]].
+      rewrite update_eq in H1. injection H1; intros; subst; clear H1.
+      apply sub_inversion_Prod in H3. destruct H3 as [U1 [U2 [H3 [H4 H5]]]].
+      injection H3; intros; subst; clear H3.
+      apply typing_inversion_fst in H2. destruct H2 as [T3 H2].
+      apply typing_inversion_var in H2. destruct H2 as [S3 [H6 H7]].
+      rewrite update_eq in H6. injection H6; intros; subst; clear H6.
+      apply sub_inversion_Prod in H7. destruct H7 as [U1 [U3 [H2 [H6 H7]]]].
+      injection H2; intros; subst; clear H2.
+      eapply S_Trans with <{ T1 -> S2 }>; auto.
+Qed.
 (** [] *)
 
 Definition smallest P :=
@@ -1851,7 +2328,27 @@ Theorem formal_smallest_1:
    exists S t,
      empty |-- <{ (\x:T, x x) t }> \in S).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right. intros [TS H]. pose proof H as H'. specialize H with <{Top -> Bool}>.
+  specialize H' with <{Top -> Unit }>. destruct H. clear H.
+  assert (exists (S : ty) (t : tm), empty |-- (\ "x" : Top -> Bool, "x" "x") t \in S).
+  { exists <{Bool}>, <{\x:Top,true}>. eapply T_App.
+    - apply T_Abs. eapply T_App.
+      + apply T_Var. rewrite update_eq. reflexivity.
+      + apply T_Sub with <{ Top -> Bool }>; auto.
+    - apply T_Abs. apply T_True. }
+  apply H0 in H. clear H0.
+ assert (exists (S : ty) (t : tm), empty |-- (\ "x" : Top -> Unit, "x" "x") t \in S).
+  { exists <{Unit}>, <{\x:Top,unit}>. eapply T_App.
+    - apply T_Abs. eapply T_App.
+      + apply T_Var. rewrite update_eq. reflexivity.
+      + apply T_Sub with <{ Top -> Unit }>; auto.
+    - apply T_Abs. apply T_Unit. }
+  apply H' in H0. clear H'.
+  apply sub_inversion_arrow in H. destruct H as [U1 [U2 [H1 [H2 H3]]]]. subst.
+  apply sub_inversion_arrow in H0. destruct H0 as [U3 [U4 [H0 [H4 H5]]]].
+  injection H0; intros; subst.
+  apply sub_inversion_Bool in H3. apply sub_inversion_Unit in H5; subst. discriminate.  
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (formal_smallest_2) *)
@@ -1860,7 +2357,22 @@ Theorem formal_smallest_2:
   (fun T =>
    empty |-- <{(\x:Top, x) ((\z:A, z), (\z:B, z))}> \in T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  left. exists <{Top}>. intros. split.
+  - (* Sufficiency *)
+    intros. apply sub_inversion_Top in H. subst. eapply T_App.
+    + apply T_Abs. apply T_Var. rewrite update_eq. reflexivity.
+    + eapply T_Sub; auto. apply T_Pair; apply T_Abs; apply T_Var;
+      rewrite update_eq; reflexivity.
+  - (* Necessity *)
+    intros. apply typing_inversion_app in H. destruct H as [T1 [H0 H1]].
+    apply typing_inversion_abs in H0. destruct H0 as [S2 [H0 H2]].
+    apply sub_inversion_arrow in H0. destruct H0 as [U1 [U2 [H0 [H3 H4]]]].
+    injection H0; intros; subst; clear H0.
+    apply typing_inversion_var in H2. destruct H2 as [S [H0 H2]].
+    rewrite update_eq in H0; injection H0; intros; subst; clear H0.
+    apply sub_inversion_Top in H2; subst.
+    apply sub_inversion_Top in H4; subst; auto.
+Qed.
 (** [] *)
 
 End FormalThoughtExercises.

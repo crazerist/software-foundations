@@ -288,7 +288,10 @@ Example subtyping_example_1 :
   TRcd_kj <: TRcd_j.
 (* {k:A->A,j:B->B} <: {j:B->B} *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold TRcd_kj, TRcd_j. eapply S_Trans.
+  - apply S_RcdPerm... discriminate.
+  - apply S_RcdDepth...
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (subtyping_example_2) *)
@@ -296,7 +299,9 @@ Example subtyping_example_2 :
   <{{ Top -> TRcd_kj }}> <:
           <{{ (C -> C) -> TRcd_j }}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold TRcd_kj, TRcd_j. apply S_Arrow...
+  apply subtyping_example_1.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (subtyping_example_3) *)
@@ -305,7 +310,8 @@ Example subtyping_example_3 :
           <{{ (k : B :: nil) -> nil }}>.
 (* {}->{j:A} <: {k:B}->{} *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  apply S_Arrow...
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (subtyping_example_4) *)
@@ -313,7 +319,15 @@ Example subtyping_example_4 :
   <{{ x : A :: y : B :: z : C :: nil }}> <:
   <{{ z : C :: y : B :: x : A :: nil }}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  eapply S_Trans. { apply S_RcdPerm; auto. discriminate. }
+  eapply S_Trans. 
+  { apply S_RcdDepth.
+    - apply S_Refl...
+    - apply S_RcdPerm; auto. discriminate.
+    - auto.
+    - auto. }
+  apply S_RcdPerm; auto. discriminate.
+Qed.
 (** [] *)
 
 End Examples.
@@ -417,7 +431,16 @@ Proof with eauto.
   intros U V1 V2 Hs.
   remember <{{ V1 -> V2 }}> as V.
   generalize dependent V2. generalize dependent V1.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; intros; try solve_by_invert.
+  - (* S_Refl *)
+    exists V1, V2. subst; inversion H. auto.
+  - (* S_Trans *)
+    destruct (IHHs2 _ _ HeqV) as [U1 [U2 [H0 [H1 H2]]]]; clear IHHs2.
+    destruct (IHHs1 _ _ H0) as [U3 [U4 [H3 [H4 H5]]]]; clear IHHs1.
+    subst. exists U3, U4; split...
+  - (* S_Arrow *)
+    inversion HeqV; subst. exists S1, S2...
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -478,7 +501,8 @@ Example typing_example_0 :
   empty |-- trcd_kj \in TRcd_kj.
 (* empty |-- {k=(\z:A.z), j=(\z:B.z)} : {k:A->A,j:B->B} *)
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold trcd_kj, TRcd_kj. apply T_RCons; unfold TRcd_j; auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (typing_example_1) *)
@@ -488,7 +512,20 @@ Example typing_example_1 :
               {k=(\z:A.z), j=(\z:B.z)}
          : B->B *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold TRcd_j, trcd_kj. eapply T_App.
+  - apply T_Abs... eapply T_Proj.
+    + apply T_Var.
+      * rewrite update_eq. auto.
+      * auto.
+    + auto.
+  - eapply T_Sub.
+    + apply T_RCons; auto.
+      * apply T_Abs... apply T_Var.
+        rewrite update_eq. auto. auto.
+      * apply T_RCons; auto. apply T_Abs...
+        apply T_Var. rewrite update_eq; auto. auto.
+    + apply subtyping_example_1.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (typing_example_2) *)
@@ -499,7 +536,18 @@ Example typing_example_2 :
               (\z:C->C. {k=(\z:A.z), j=(\z:B.z)})
            : B->B *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold trcd_kj, TRcd_j. eapply T_App.
+  - apply T_Abs... eapply T_Proj. eapply T_App.
+    + apply T_Var. rewrite update_eq... auto.
+    + apply T_Abs...
+    + auto.
+  - apply T_Abs... eapply T_Sub.
+    + apply T_RCons...
+      * apply T_Abs... apply T_Var. rewrite update_eq... auto.
+      * apply T_RCons... apply T_Abs...
+        apply T_Var. rewrite update_eq... auto.
+    + apply subtyping_example_1.
+Qed.
 (** [] *)
 
 End Examples2.
@@ -569,7 +617,13 @@ Lemma canonical_forms_of_arrow_types : forall Gamma s T1 T2,
      exists x S1 s2,
         s = <{ \ x  : S1, s2 }>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros. remember <{{ T1 -> T2 }}> as T.
+  generalize dependent T1. generalize dependent T2.
+  induction H; intros; try solve_by_invert...
+  - (* T_Sub *)
+    subst. apply sub_inversion_arrow in H1. 
+    destruct H1 as [U1 [U2 [H1 [H2 H3]]]]. eapply IHhas_type...
+Qed.
 (** [] *)
 
 Theorem progress : forall t T,
@@ -861,4 +915,4 @@ Proof with eauto.
 
 End RecordSub.
 
-(* 2023-07-06 15:50 *)
+(* 2024-04-23 19:10 *)

@@ -1054,7 +1054,22 @@ Theorem cyclic_store:
     t / nil -->*
     <{ unit }> / (<{ \x:Nat, (!(loc 1)) x }> :: <{ \x:Nat, (!(loc 0)) x }> :: nil).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists <{ ref 0; ref 0; 
+    (loc 0 := \x:Nat, (!(loc 1)) x);
+    (loc 1 := \x:Nat, (!(loc 0)) x)
+  }>.
+  unfold tseq. eapply multi_step; auto; simpl.
+  eapply multi_step; auto; simpl.
+  eapply multi_step; auto; simpl.
+  eapply multi_step; auto; simpl.
+  eapply multi_step.
+  { eapply ST_App2; auto. apply ST_Assign; simpl; auto. }
+  eapply multi_step; auto; simpl.
+  eapply multi_step.
+  { eapply ST_Assign; simpl; auto. }
+  simpl. apply multi_refl.
+Qed.
+
 (** [] *)
 
 (** These problems arise from the fact that our proposed
@@ -1276,7 +1291,16 @@ Theorem store_not_unique:
     store_well_typed ST2 st /\
     ST1 <> ST2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (<{!(loc 0)}> :: nil), (Ty_Nat :: nil), (Ty_Unit :: nil). split.
+  { unfold store_well_typed. split; auto. simpl; intros. inversion H; subst.
+    - unfold store_lookup, store_Tlookup. simpl. auto.
+    - inversion H1. }
+  split.
+  { unfold store_well_typed. split; auto. simpl; intros. inversion H; subst.
+    - unfold store_lookup, store_Tlookup. simpl. auto.
+    - inversion H1. }
+  intro. inversion H.
+Qed.
 (** [] *)
 
 (** We can now state something closer to the desired preservation
@@ -1910,24 +1934,31 @@ Qed.
     sure it gives the correct result when applied to the argument
     [4].) *)
 
-Definition factorial : tm
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition factorial : tm :=
+  <{ (\r : Ref (Nat -> Nat),
+     ( r := (\x : Nat, if0 x then 1 else x * ((!r) (pred x)))); !r)
+     ( ref (\x : Nat, x)) }>.
 
 Lemma factorial_type : empty; nil |-- factorial \in (Nat -> Nat).
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
-
+  unfold factorial, tseq. eapply T_App.
+  - apply T_Abs. eapply T_App; auto. eapply T_Assign.
+    + apply T_Var; rewrite update_eq. reflexivity.
+    + apply T_Abs. apply T_If0... apply T_Mult...
+      eapply T_App... apply T_Deref...
+  - auto.
+Qed.
 (** If your definition is correct, you should be able to just
     uncomment the example below; the proof should be fully
     automatic using the [reduce] tactic. *)
 
-(* 
+
 Lemma factorial_4 : exists st,
   <{ factorial 4 }> / nil -->* tm_const 24 / st.
 Proof.
   eexists. unfold factorial. reduce.
 Qed.
-*)
+
 (** [] *)
 
 (* ################################################################# *)
@@ -1944,4 +1975,4 @@ Qed.
 End RefsAndNontermination.
 End STLCRef.
 
-(* 2023-07-06 15:50 *)
+(* 2024-04-23 16:45 *)

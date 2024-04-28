@@ -594,7 +594,7 @@ Fixpoint R (T:ty) (t:tm) : Prop :=
    | <{ T1 -> T2 }> => (forall s, R T1 s -> R T2 <{t s}> )
 
    (* ... edit the next line when dealing with products *)
-   | <{ T1 * T2 }> => False    (* FILL IN HERE *)
+   | <{ T1 * T2 }> => R T1 <{t.fst}> /\ R T2 <{t.snd}>
    end).
 
 (** As immediate consequences of this definition, we have that every
@@ -671,8 +671,12 @@ Proof.
   eapply IHT2.
   apply  ST_App1. apply E.
   apply RRt; auto.
-  (* FILL IN HERE *) Admitted.
-
+  (* Product *)
+  split. eapply preservation; eauto.
+  split. apply (step_preserves_halting _ _ E); eauto.
+  destruct RRt. split. apply IHT1 with <{t.fst}>; auto.
+  apply IHT2 with <{t.snd}>; auto.
+Qed.
 (** The generalization to multiple steps is trivial: *)
 
 Lemma multistep_preserves_R : forall T t t',
@@ -689,7 +693,25 @@ Qed.
 Lemma step_preserves_R' : forall T t t',
   empty |-- t \in T -> (t --> t') -> R T t' -> R T t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction T; intros.
+  - (* Bool *)
+    destruct H1 as [H1 [H2 _]]. split; auto. split; auto. 
+    apply step_preserves_halting with t'; auto.
+  - (* Arrow *)
+    destruct H1 as [H1 [H2 H3]]. split; auto. split.
+    + apply step_preserves_halting with t'; auto.
+    + intros. eapply IHT2.
+      * eapply T_App. apply H. apply R_typable_empty in H4. assumption.
+      * apply ST_App1. apply H0.
+      * auto.
+  - (* Product *)
+    destruct H1 as [H1 [H2 [H3 H4]]]. split; auto. split.
+    + apply step_preserves_halting with t'; auto.
+    + split.
+      * eapply IHT1. eapply T_Fst. apply H. eauto. auto.
+      * eapply IHT2. eapply T_Snd. apply H. eauto. auto.
+Qed.
+
 
 Lemma multistep_preserves_R' : forall T t t',
   empty |-- t \in T -> (t -->* t') -> R T t' -> R T t.
@@ -825,7 +847,15 @@ Lemma vacuous_substitution : forall  t x,
      ~ appears_free_in x t  ->
      forall t', <{ [x:=t']t }> = t.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold not; induction t; simpl; intros; auto;
+  try (f_equal; try apply IHt; try apply IHt1; try apply IHt2; try apply IHt3;
+  intro; apply H; auto).
+  - (* tm_var *)
+    destruct (eqb_spec x s); subst... exfalso...
+  - (* tm_abs *)
+    destruct (eqb_spec x s); auto. f_equal. apply IHt. intro.
+    apply H. auto.
+Qed.
 
 Lemma subst_closed: forall t,
      closed t  ->
@@ -879,7 +909,28 @@ Proof with eauto.
    + subst. simpl. rewrite String.eqb_refl. apply subst_closed...
    + subst. simpl. rewrite String.eqb_refl. rewrite subst_closed...
    + simpl. rewrite false_eqb_string... rewrite false_eqb_string...
-  (* FILL IN HERE *) Admitted.
+  - (* app *)
+    f_equal; [apply IHt1 | apply IHt2]; auto.
+  - (* abs *)
+    destruct (eqb_spec x s); destruct (eqb_spec x1 s); subst; simpl.
+    + rewrite String.eqb_refl; auto.
+    + rewrite false_eqb_string... rewrite String.eqb_refl; auto.
+    + rewrite String.eqb_refl. rewrite false_eqb_string...
+    + rewrite false_eqb_string... rewrite false_eqb_string... 
+      f_equal. apply IHt...
+  - (* true *)
+    auto.
+  - (* false *)
+    auto.
+  - (* if *)
+    f_equal; [apply IHt1 | apply IHt2 | apply IHt3]; auto.
+  - (* pair *)
+    f_equal; [apply IHt1 | apply IHt2]; auto.
+  - (* fst *)
+    f_equal; apply IHt; auto.
+  - (* snd *)
+    f_equal; apply IHt; auto.
+Qed.
 
 (* ----------------------------------------------------------------- *)
 (** *** Properties of Multi-Substitutions *)
@@ -946,9 +997,49 @@ Proof.
     simpl. rewrite <- IHss. auto.
 Qed.
 
+
 (** You'll need similar functions for the other term constructors. *)
 
-(* FILL IN HERE *)
+
+Lemma msubst_true : forall ss,
+  msubst ss <{ true }> = <{ true }>.
+Proof.
+  induction ss; intros. reflexivity. destruct a. simpl; auto.
+Qed.
+
+Lemma msubst_false : forall ss,
+  msubst ss <{ false }> = <{ false }>.
+Proof.
+  induction ss; intros. reflexivity. destruct a. simpl; auto.
+Qed.
+
+Lemma msubst_if : forall ss t1 t2 t3,
+  msubst ss <{ if t1 then t2 else t3 }> =
+  <{if {msubst ss t1} then {msubst ss t2} else {msubst ss t3} }>.
+Proof.
+  induction ss; intros. reflexivity. destruct a. simpl; auto.
+Qed.
+
+Lemma msubst_pair : forall ss t1 t2,
+  msubst ss <{ (t1, t2) }> = 
+  <{ ({msubst ss t1}, {msubst ss t2} ) }>.
+Proof.
+  induction ss; intros. reflexivity. destruct a. simpl; auto.
+Qed.
+
+Lemma msubst_fst : forall ss t,
+  msubst ss <{ t.fst }> = 
+  <{ {msubst ss t}.fst }>.
+Proof.
+  induction ss; intros. reflexivity. destruct a. simpl; auto.
+Qed.
+
+Lemma msubst_snd : forall ss t,
+  msubst ss <{ t.snd }> = 
+  <{ {msubst ss t}.snd }>.
+Proof.
+  induction ss; intros. reflexivity. destruct a. simpl; auto.
+Qed.
 
 (* ----------------------------------------------------------------- *)
 (** *** Properties of Multi-Extensions *)
@@ -1041,7 +1132,172 @@ Proof.
      apply ST_App2; eauto.  auto.
 Qed.
 
-(* FILL IN HERE *)
+Lemma typing_inversion_Bool : forall t,
+  empty |-- t \in <{Bool}> ->
+  value t ->
+  t = <{true}> \/ t = <{false}>.
+Proof.
+  intros. destruct H0; try solve_by_invert; auto.
+Qed.
+
+Lemma multistep_ST_If : forall t1 t2 t3 t1',
+  t1 -->* t1' ->
+  <{ if t1 then t2 else t3 }> -->* <{ if t1' then t2 else t3 }>.
+Proof.
+  intros. induction H; auto. apply multi_trans with <{ if y then t2 else t3 }>.
+  - eapply multi_step. apply ST_If. apply H. auto.
+  - apply IHmulti.
+Qed.
+
+Lemma multistep_ST_Pair1 : forall t1 t2 t1',
+  t1 -->* t1' ->
+  <{ (t1, t2) }> -->* <{ (t1', t2) }>.
+Proof.
+  intros. induction H; auto. apply multi_trans with <{ (y, t2) }>.
+  - eapply multi_step. apply ST_Pair1. apply H. auto.
+  - auto.
+Qed.
+
+Lemma multistep_ST_Pair2 : forall t1 t2 t2',
+  t2 -->* t2' ->
+  value t1 ->
+  <{ (t1, t2) }> -->* <{ (t1, t2') }>.
+Proof.
+  intros. induction H; auto. apply multi_trans with <{ (t1, y) }>.
+  - eapply multi_step. apply ST_Pair2; auto. apply H. auto.
+  - auto.
+Qed.
+
+Lemma multistep_ST_Fst1 : forall t t',
+  t -->* t' ->
+  <{ t.fst }> -->* <{ t'.fst }>.
+Proof.
+  intros. induction H; auto. apply multi_trans with <{ y.fst }>.
+  - eapply multi_step. apply ST_Fst1; auto. apply H. auto.
+  - auto.
+Qed.
+
+Lemma multistep_ST_Snd1 : forall t t',
+  t -->* t' ->
+  <{ t.snd }> -->* <{ t'.snd }>.
+Proof.
+  intros. induction H; auto. apply multi_trans with <{ y.snd }>.
+  - eapply multi_step. apply ST_Snd1; auto. apply H. auto.
+  - auto.
+Qed.
+
+Lemma R_If_congruence : forall t1 t2 t3 T,
+  R <{ Bool }> t1 ->
+  R T t2 -> R T t3 ->
+  R T <{ if t1 then t2 else t3 }>.
+Proof.
+  intros t1 t2 t3 T H1 H2 H3.
+  remember H1 as H1'. destruct H1 as [H11 [H12 H13]]. clear HeqH1'. 
+  destruct H12 as [t1' [H12 H14]].
+  assert(R <{Bool}> t1') as H15. { apply multistep_preserves_R with t1; auto. }
+  destruct H15 as [H15 _]. remember (typing_inversion_Bool t1' H15 H14) as H16.
+  clear HeqH16. destruct T.
+  - (* T equals <{ Bool }> *)
+    destruct H16.
+    + (* t1' equals <{ true }> *)
+      apply multistep_preserves_R' with t2.
+      * apply R_typable_empty in H2. apply R_typable_empty in H3.
+        eapply T_If; auto.
+      * apply multi_trans with <{ if t1' then t2 else t3 }>.
+        { eapply multistep_ST_If. apply H12. }
+        { subst. eapply multi_step. apply ST_IfTrue. auto. }
+      * auto.
+    + (* t1' equals <{ false }> *)
+      apply multistep_preserves_R' with t3.
+      * apply R_typable_empty in H2. apply R_typable_empty in H3.
+        eapply T_If; auto.
+      * apply multi_trans with <{ if t1' then t2 else t3 }>.
+        { eapply multistep_ST_If. apply H12. }
+        { subst. eapply multi_step. apply ST_IfFalse. auto. }
+      * auto.
+  - (* T equals <{ Bool -> Bool }> *)
+    destruct H16.
+    + (* t1' equals <{ true }> *)
+      apply multistep_preserves_R' with t2.
+      * apply R_typable_empty in H2. apply R_typable_empty in H3.
+        eapply T_If; auto.
+      * apply multi_trans with <{ if t1' then t2 else t3 }>.
+        { eapply multistep_ST_If. apply H12. }
+        { subst. eapply multi_step. apply ST_IfTrue. auto. }
+      * auto.
+    + (* t1' equals <{ false }> *)
+      apply multistep_preserves_R' with t3.
+      * apply R_typable_empty in H2. apply R_typable_empty in H3.
+        eapply T_If; auto.
+      * apply multi_trans with <{ if t1' then t2 else t3 }>.
+        { eapply multistep_ST_If. apply H12. }
+        { subst. eapply multi_step. apply ST_IfFalse. auto. }
+      * auto. 
+  - (* T equals <{ T1 * T2 }> *)
+    destruct H16.
+    + (* t1' equals <{ true }> *)
+      apply multistep_preserves_R' with t2.
+      * apply R_typable_empty in H2. apply R_typable_empty in H3.
+        eapply T_If; auto.
+      * apply multi_trans with <{ if t1' then t2 else t3 }>.
+        { eapply multistep_ST_If. apply H12. }
+        { subst. eapply multi_step. apply ST_IfTrue. auto. }
+      * auto.
+    + (* t1' equals <{ false }> *)
+      apply multistep_preserves_R' with t3.
+      * apply R_typable_empty in H2. apply R_typable_empty in H3.
+        eapply T_If; auto.
+      * apply multi_trans with <{ if t1' then t2 else t3 }>.
+        { eapply multistep_ST_If. apply H12. }
+        { subst. eapply multi_step. apply ST_IfFalse. auto. }
+      * auto.
+Qed.
+
+Lemma R_Fst_congruence : forall t1 t2 T1 T2,
+  R T1 t1 -> R T2 t2 -> R T1 <{ (t1, t2).fst }>.
+Proof.
+  intros. remember H. clear Heqr.
+  apply R_typable_empty in H as H11. apply R_halts in H as [t1' [H12 H13]].
+  apply R_typable_empty in H0 as H21. apply R_halts in H0 as [t2' [H22 H23]].
+  eapply multistep_preserves_R'.
+  - eapply T_Fst. apply T_Pair; auto. apply H21.
+  - eapply multi_trans. apply multistep_ST_Fst1. apply multistep_ST_Pair1.
+    apply H12. eapply multi_trans. apply multistep_ST_Fst1.
+    apply multistep_ST_Pair2. apply H22. assumption. eapply multi_step.
+    apply ST_FstPair; auto. apply multi_refl.
+  - eapply multistep_preserves_R. apply H12. auto.
+Qed.
+
+
+Lemma R_Snd_congruence : forall t1 t2 T1 T2,
+  R T1 t1 -> R T2 t2 -> R T2 <{ (t1, t2).snd }>.
+Proof.
+  intros. remember H0. clear Heqr.
+  apply R_typable_empty in H as H11. apply R_halts in H as [t1' [H12 H13]].
+  apply R_typable_empty in H0 as H21. apply R_halts in H0 as [t2' [H22 H23]].
+  eapply multistep_preserves_R'.
+  - eapply T_Snd. apply T_Pair; auto. apply H11.
+  - eapply multi_trans. apply multistep_ST_Snd1. apply multistep_ST_Pair1.
+    apply H12. eapply multi_trans. apply multistep_ST_Snd1.
+    apply multistep_ST_Pair2. apply H22. assumption. eapply multi_step.
+    apply ST_SndPair; auto. apply multi_refl.
+  - eapply multistep_preserves_R. apply H22. auto.
+Qed.
+
+Lemma R_Pair_congruence : forall t1 t2 T1 T2,
+  R T1 t1 -> R T2 t2 ->
+  R <{ T1 * T2 }> <{ (t1, t2) }>.
+Proof.
+  intros. split.
+  { apply R_typable_empty in H. apply R_typable_empty in H0. auto. } split.
+  { apply R_halts in H. apply R_halts in H0. unfold halts in *.
+    destruct H as [t1' [H H1]]. destruct H0 as [t2' [H0 H2]].
+    exists <{ (t1', t2' )}>. split; auto. apply multi_trans with <{ (t1', t2) }>.
+    - apply multistep_ST_Pair1. auto.
+    - apply multistep_ST_Pair2; auto. } split.
+  { apply R_Fst_congruence with T2; auto. }
+  { apply R_Snd_congruence with T1; auto. }
+Qed.
 
 (* ----------------------------------------------------------------- *)
 (** *** The R Lemma *)
@@ -1127,8 +1383,27 @@ Proof.
     rewrite msubst_app.
     destruct (IHHT1 c H env0 V) as [_ [_ P1]].
     pose proof (IHHT2 c H env0 V) as P2.  fold R in P1.  auto.
-
-  (* FILL IN HERE *) Admitted.
+  - (* T_True *)
+    rewrite msubst_true. split; auto. split; auto. unfold halts. 
+    exists <{ true }>. split; auto.
+  - (* T_False *)
+    rewrite msubst_false. split; auto. split; auto. unfold halts. 
+    exists <{ false }>. split; auto.
+  - (* T_If *)
+    rewrite msubst_if.
+    apply (IHHT1 _ H) in V as H1. apply (IHHT2 _ H) in V as H2.
+    apply (IHHT3 _ H) in V as H3. apply R_If_congruence; auto.
+  - (* T_Pair *) 
+    rewrite msubst_pair.
+    apply (IHHT1 _ H) in V as H1. apply (IHHT2 _ H) in V as H2.
+    apply R_Pair_congruence; auto.
+  - (* T_Fst *)
+    rewrite msubst_fst. apply (IHHT _ H) in V as H0. inversion H0.
+    destruct H2 as[_ [H2 _]]. auto.
+  - (* T_Snd *)
+    rewrite msubst_snd. apply (IHHT _ H) in V as H0. inversion H0.
+    destruct H2 as[_ [_ H2]]. auto.
+Qed.
 
 (* ----------------------------------------------------------------- *)
 (** *** Normalization Theorem *)
@@ -1144,4 +1419,4 @@ Proof.
   eapply V_nil.
 Qed.
 
-(* 2023-07-06 15:50 *)
+(* 2024-04-28 18:53 *)

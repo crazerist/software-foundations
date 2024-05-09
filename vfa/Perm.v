@@ -534,7 +534,12 @@ Check app_comm_cons.
 Example permut_example: forall (a b: list nat),
   Permutation (5 :: 6 :: a ++ b) ((5 :: b) ++ (6 :: a ++ [])).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. rewrite app_nil_r. replace ((5 :: b) ++ 6 :: a) with (5 :: (b ++ 6 :: a)).
+  - apply perm_skip. replace (6 :: a ++ b) with ((6 :: a) ++ b).
+    + apply Permutation_app_comm.
+    + apply app_comm_cons.
+  - rewrite <- app_comm_cons. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (not_a_permutation)
@@ -548,7 +553,10 @@ Check Permutation_length_1_inv.
 Example not_a_permutation:
   ~ Permutation [1;1] [1;2].
 Proof.
-(* FILL IN HERE *) Admitted.
+  intro. apply Permutation_cons_inv in H.
+  apply Permutation_length_1_inv in H. inversion H.
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
@@ -614,7 +622,14 @@ Theorem Forall_perm: forall {A} (f: A -> Prop) al bl,
   Permutation al bl ->
   Forall f al -> Forall f bl.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction H; auto.
+  - (* perm_skip *)
+    inv H0. apply IHPermutation in H4. auto.
+  - (*perm_swap *)
+    inv H0. inv H3. auto.
+Qed.
+
+
 (** [] *)
 
 (* ################################################################# *)
@@ -627,4 +642,4 @@ Proof.
     [maybe_swap_correct] will be applied (at a larger scale) in
     the next few chapters. *)
 
-(* 2023-08-23 11:34 *)
+(* 2024-05-09 19:27 *)

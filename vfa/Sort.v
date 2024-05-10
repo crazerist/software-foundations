@@ -174,7 +174,18 @@ Lemma insert_sorted:
   forall a l, sorted l -> sorted (insert a l).
 Proof.
   intros a l S. induction S; simpl.
-  (* FILL IN HERE *) Admitted.
+  - (* sorted_nil *)
+    auto.
+  - (* sorted_l *)
+    destruct (leb_reflect a x); auto.
+    rewrite Nat.nle_gt in n. apply Nat.lt_le_incl in n. auto.
+  - (* sorted_cons *)
+    destruct (leb_reflect a x).
+    + destruct (leb_reflect a y); auto.
+    + rewrite Nat.nle_gt in n. apply Nat.lt_le_incl in n.
+      simpl in IHS. destruct (leb_reflect a y); auto.
+Qed.
+
 
 (** [] *)
 
@@ -185,8 +196,12 @@ Proof.
 
 Theorem sort_sorted: forall l, sorted (sort l).
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  intros. induction l.
+  - (* nil *)
+    auto.
+  - (* cons *)
+    simpl. apply insert_sorted; auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (insert_perm) *)
@@ -197,7 +212,10 @@ Proof.
 Lemma insert_perm: forall x l,
     Permutation (x :: l) (insert x l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction l; auto. simpl.
+  destruct (leb_reflect x a); auto. 
+  eapply perm_trans. apply perm_swap. auto.
+Qed.
 
 (** [] *)
 
@@ -207,7 +225,9 @@ Proof.
 
 Theorem sort_perm: forall l, Permutation l (sort l).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. induction l; auto. simpl. eapply perm_trans.
+  apply perm_skip. apply IHl. apply insert_perm.
+Qed.
 
 (** [] *)
 
@@ -218,7 +238,8 @@ Proof.
 Theorem insertion_sort_correct:
     is_a_sorting_algorithm sort.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. split. apply sort_perm. apply sort_sorted.
+Qed.
 
 (** [] *)
 
@@ -242,7 +263,26 @@ Lemma sorted_sorted': forall al, sorted al -> sorted' al.
     have to think about how to approach it, and try out one or two
     different ideas.*)
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. induction H; unfold sorted'; intros.
+  - (* sorted_nil *)
+    destruct i; discriminate H0.
+  - (* sorted_1 *)
+    destruct i; simpl in H0.
+    + injection H0; intros; subst. destruct j; simpl in H1.
+      * injection H1; intros; subst. auto.
+      * destruct j; discriminate H1.
+    + destruct i; discriminate H0.
+  - (* sorted_cons *)
+    destruct i; simpl in H2.
+    + injection H2; intros; subst; clear H2. destruct j; simpl in H3.
+      * injection H3; intros; subst. auto.
+      * destruct j; simpl in H3.
+        { injection H3; intros; subst; clear H3. auto. }
+        { apply Nat.le_trans with y; auto.
+          apply IHsorted with (i := 0) (j := S j); try lia; auto. }
+    + destruct j. inversion H1. simpl in H3.
+      apply IHsorted with (i := i) (j := j); try lia; auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (sorted'_sorted) *)
@@ -251,7 +291,11 @@ Proof.
 (** Here, you can't do induction on the sortedness of the list,
     because [sorted'] is not an inductive predicate. But the proof
     is less tricky than the previous. *)
-(* FILL IN HERE *) Admitted.
+  intros. induction al; auto. destruct al; auto. apply sorted_cons.
+  - apply H with (i := 0) (j := 1); auto.
+  - apply IHal. unfold sorted'; intros. apply H with (i := S i) (j := S j);
+    try lia; auto.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -277,12 +321,53 @@ Lemma nth_error_insert : forall l a i iv,
     nth_error (insert a l) i = Some iv ->
     a = iv \/ exists i', nth_error l i' = Some iv.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intro l; induction l; intros.
+  - (* nil *)
+  simpl in H. destruct i; simpl in H.
+    + injection H; auto.
+    + destruct i; discriminate H.
+  - (* cons *)
+   simpl in H. destruct (leb_reflect a0 a).
+    + destruct i; simpl in H.
+      * injection H; auto.
+      * eauto.
+    + destruct i; simpl in H.
+      * right. exists 0. auto.
+      * apply IHl in H. destruct H; auto. destruct H.
+        right. exists (S x). auto.
+Qed.
 
 Lemma insert_sorted':
   forall a l, sorted' l -> sorted' (insert a l).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. unfold sorted'; induction l; intros.
+  - (* nil *)
+    destruct i; simpl in H1.
+    + injection H1; intros; subst; clear H1.
+      destruct j; simpl in H2.
+      * injection H2; intros; subst; clear H2. auto.
+      * destruct j; discriminate H2.
+    + destruct i; discriminate H1.
+  - (* cons *)
+    unfold insert in H1, H2. destruct (leb_reflect a a0).
+    + destruct i, j.
+      * injection H1; injection H2; intros; subst; auto.
+      * injection H1; intros; subst. apply Nat.le_trans with a0; auto.
+        destruct j. injection H2; intros; subst; auto.
+        apply H with (i := 0) (j := S j); try lia; auto.
+      * inversion H0.
+      * apply H with (i := i) (j := j); try lia; auto.
+    + fold insert in *. destruct i, j.
+      * injection H1; injection H2; intros; subst; auto.
+      * injection H1; intros; subst; clear H1; simpl in H2.
+        apply nth_error_insert in H2. destruct H2. lia.
+        destruct H1. apply H with (i := 0) (j := S x); try lia; auto.
+      * inversion H0.
+      * simpl in H1, H2. assert (sorted' l).
+        { unfold sorted'; intros. apply H with (i := S i0) (j := S j0);
+          try lia; auto. }
+        apply IHl with (i := i) (j := j); try lia; auto.
+Qed.
 (** [] *)
 
 Theorem sort_sorted': forall l, sorted' (sort l).
@@ -304,4 +389,4 @@ Qed.
     difficulty of the correctness proofs_. *)
 
 
-(* 2023-08-23 11:34 *)
+(* 2024-05-10 17:32 *)

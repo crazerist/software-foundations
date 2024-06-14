@@ -72,7 +72,8 @@ Lemma union_assoc: forall a b c : multiset,
 Proof.
   intros.
   extensionality x.
-  (* FILL IN HERE *) Admitted.
+  unfold union. lia.
+Qed.
 
 (** [] *)
 
@@ -83,7 +84,9 @@ Proof.
 Lemma union_comm: forall a b : multiset,
    union a b = union b a.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. extensionality x.
+  unfold union. lia.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (union_swap) *)
@@ -95,7 +98,9 @@ Proof.
 Lemma union_swap : forall a b c : multiset,
     union a (union b c) = union b (union a c).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. repeat rewrite union_assoc.
+  rewrite union_comm with a b. reflexivity.
+Qed.
 
 (** [] *)
 
@@ -130,8 +135,8 @@ Fixpoint contents (al: list value) : multiset :=
 
 Example sort_pi_same_contents:
   contents (sort [3;1;4;1;5;9;2;6;5;3;5]) = contents [3;1;4;1;5;9;2;6;5;3;5].
-Proof.
-  extensionality x.
+Proof.  
+  extensionality x. 
   repeat (destruct x; try reflexivity).
   (* Why does this work? Try it step by step, without [repeat]. *)
 Qed.
@@ -162,8 +167,11 @@ Definition is_a_sorting_algorithm' (f: list nat -> list nat) := forall al,
 
 Lemma insert_contents: forall x l,
      contents (insert x l) = contents (x :: l).
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with simpl.
+  intros. induction l; try reflexivity...
+  destruct (x <=? a); try reflexivity...
+  rewrite IHl... apply union_swap.
+Qed.
 
 (** [] *)
 
@@ -175,7 +183,10 @@ Proof.
 Theorem sort_contents: forall l,
     contents l = contents (sort l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction l; try reflexivity.
+  simpl. rewrite IHl. rewrite insert_contents.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -186,7 +197,8 @@ Proof.
 Theorem insertion_sort_correct :
   is_a_sorting_algorithm' sort.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  split. apply sort_contents. apply sort_sorted.
+Qed.
 
 (** [] *)
 
@@ -240,7 +252,12 @@ Definition manual_grade_for_permutations_vs_multiset : option (nat*string) := No
 Lemma perm_contents: forall al bl : list nat,
     Permutation al bl -> contents al = contents bl.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction H.
+  - reflexivity.
+  - simpl. rewrite IHPermutation. reflexivity.
+  - simpl. rewrite union_swap. reflexivity.
+  - rewrite IHPermutation1. assumption.
+Qed.
 
 (** [] *)
 
@@ -256,7 +273,11 @@ Proof.
 (** **** Exercise: 2 stars, advanced (contents_nil_inv) *)
 Lemma contents_nil_inv : forall l, (forall x, 0 = contents l x) -> l = nil.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. destruct l; intros; try reflexivity.
+  exfalso. specialize H with v. simpl in H. 
+  unfold union in H. unfold singleton in H.
+  rewrite Nat.eqb_refl in H. simpl in H. inversion H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (contents_cons_inv) *)
@@ -266,17 +287,55 @@ Lemma contents_cons_inv : forall l x n,
       l = l1 ++ x :: l2
       /\ contents (l1 ++ l2) x = n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l; intros; try discriminate.
+  simpl in H. unfold union in H. unfold singleton in H.
+  destruct (x =? a) eqn : E.
+  - injection H; intros. exists [], l. split.
+    + rewrite Nat.eqb_eq in E; subst. reflexivity.
+    + simpl. symmetry. assumption.
+  - rewrite Nat.add_0_l in H. apply IHl in H.
+    destruct H as [l1 [l2 [H1 H2]]]. exists (a :: l1), l2. split.
+    + subst. reflexivity.
+    + simpl. unfold union. unfold singleton.
+      rewrite E. rewrite Nat.add_0_l. assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced (contents_insert_other) *)
 Lemma contents_insert_other : forall l1 l2 x y,
     y <> x -> contents (l1 ++ x :: l2) y = contents (l1 ++ l2) y.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l1; intros; simpl; unfold union,singleton.
+  -  apply Nat.eqb_neq in H. rewrite H. 
+    rewrite Nat.add_0_l. reflexivity.
+  - f_equal. eapply IHl1 in H. apply H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (contents_perm) *)
+Lemma contents_insert_same : forall l1 l2 x,
+    contents (l1 ++ x :: l2) x = S (contents (l1 ++ l2) x).
+Proof.
+  induction l1; intros; simpl; unfold union, singleton.
+  - rewrite Nat.eqb_refl. reflexivity.
+  - rewrite plus_n_Sm. f_equal. apply IHl1.
+Qed.
+
+Lemma contents_app_comm : forall l1 l2,
+  contents (l1 ++ l2) = contents (l2 ++ l1).
+Proof.
+  induction l1; intros.
+  - rewrite app_nil_r. reflexivity.
+  - extensionality x. destruct (x =? a) eqn : E;
+    simpl; unfold union,singleton.
+    + rewrite E. apply Nat.eqb_eq in E; subst.
+      rewrite contents_insert_same. simpl.
+      rewrite IHl1. reflexivity.
+    + rewrite E. apply Nat.eqb_neq in E.
+      rewrite (contents_insert_other _ _ _ _ E).
+      rewrite Nat.add_0_l. rewrite IHl1. reflexivity.
+Qed.
+
 Lemma contents_perm: forall al bl,
     contents al = contents bl -> Permutation al bl.
 Proof.
@@ -284,8 +343,22 @@ Proof.
   assert (H: forall x, contents al x = contents bl x).
   { rewrite H0. auto. }
   clear H0.
-  generalize dependent bl.
-(* FILL IN HERE *) Admitted.
+  generalize dependent bl. induction al; intros.
+  - simpl in H. unfold empty in H. 
+    apply contents_nil_inv in H; subst. constructor.
+  - specialize H with a as H0. simpl in H0. 
+    unfold union, singleton in H0. rewrite Nat.eqb_refl in H0.
+    apply contents_cons_inv in H0.
+    destruct H0 as [l1 [l2 [H1 H2]]]; subst.
+    rewrite contents_app_comm in H. simpl in H.
+    unfold union in H. 
+    assert(forall x, contents al x = contents (l2 ++ l1) x).
+    { intros. specialize H with x. unfold singleton in H.
+      destruct (x =? a) eqn : E; [injection H; intros | ]; auto. }
+    specialize IHal with (l1 ++ l2). rewrite contents_app_comm in H0.
+    apply IHal in H0. rewrite Permutation_app_comm. simpl.
+    apply perm_skip. rewrite Permutation_app_comm. assumption.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -302,7 +375,8 @@ Proof.
 Theorem same_contents_iff_perm: forall al bl,
     contents al = contents bl <-> Permutation al bl.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  split. apply contents_perm. apply perm_contents.
+Qed.
 
 (** [] *)
 
@@ -313,11 +387,16 @@ Proof.
 Theorem sort_specifications_equivalent: forall sort,
     is_a_sorting_algorithm sort <-> is_a_sorting_algorithm' sort.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; split; intros.
+  - split; destruct H with al. apply same_contents_iff_perm in H0.
+    apply H0. apply H1.
+  - split; destruct H with al. apply same_contents_iff_perm in H0.
+    apply H0. apply H1.
+Qed.
 
 (** [] *)
 
 (** That means we can verify sorting algorithms using either
     permutations or multisets, whichever we find more convenient. *)
 
-(* 2023-08-23 11:34 *)
+(* 2024-06-14 22:11 *)

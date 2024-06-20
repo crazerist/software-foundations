@@ -162,7 +162,16 @@ Lemma split_perm : forall {X:Type} (l l1 l2: list X),
     split l = (l1,l2) -> Permutation l (l1 ++ l2).
 Proof.
   induction l as [| x | x1 x2 l1' IHl'] using list_ind2; intros.
-(* FILL IN HERE *) Admitted.
+  - inv H. simpl. constructor.
+  - inv H. simpl. apply Permutation_refl.
+  - inv H. destruct (split l1') as [l3 l4] eqn : E.
+    destruct l1, l2; inv H1. specialize IHl' with l1 l2.
+    assert ((l1, l2) = (l1, l2)). { reflexivity. }
+    apply IHl' in H. simpl. apply perm_skip.
+    eapply perm_trans. apply perm_skip. apply H.
+    apply Permutation_middle.
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
@@ -210,7 +219,7 @@ Fixpoint merge l1 l2  {struct l1} :=
   let fix merge_aux l2 :=
   match l1, l2 with
   | [], _ => l2
-  | _, [] => l1
+  | _, [] =>l1
   | a1::l1', a2::l2' =>
       if a1 <=? a2 then a1 :: merge l1' l2 else a2 :: merge_aux l2'
   end
@@ -281,7 +290,17 @@ Proof.
     destruct r2; simpl.  (* makes some progress *)
     + lia.
     + lia. 
-Qed.  
+Qed.
+
+Lemma merge2' : forall (x1 x2:nat) r1 r2,
+    x1 > x2 ->
+    merge (x1::r1) (x2::r2) =
+    x2 ::merge (x1::r1) r2.
+Proof.
+  intros. destruct (x1 <=? x2) eqn : E.
+  - apply leb_complete in E. lia.
+  - simpl; rewrite E; reflexivity.
+Qed.
 
 Lemma merge_nil_l : forall l, merge [] l = l. 
 Proof.
@@ -463,10 +482,22 @@ Lemma sorted_merge1 : forall x x1 l1 x2 l2,
     sorted (merge (x1::l1) (x2::l2)) ->
     sorted (x :: merge (x1::l1) (x2::l2)).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. simpl in *. destruct (x1 <=? x2) eqn : E.
+  - apply sorted_cons; auto.
+  - apply sorted_cons; auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard (sorted_merge) *)
+Lemma sorted_cons_inv :
+  forall x l,
+  sorted (x :: l) -> sorted l.
+Proof.
+  intros. generalize dependent x. induction l; intros.
+  - constructor.
+  - inv H. apply H4.
+Qed.
+
 Lemma sorted_merge : forall l1, sorted l1 ->
                      forall l2, sorted l2 ->
                      sorted (merge l1 l2).
@@ -474,14 +505,32 @@ Proof.
   (* Hint: This is one unusual case where it is _much_ easier to do induction on 
      [l1] rather than on [sorted l1]. You will also need to do
      nested inductions on [l2]. *)
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  induction l1.
+  - intros. rewrite merge_nil_l. assumption.
+  - intro. induction l2; intros.
+    + simpl. assumption.
+    + apply sorted_cons_inv in H as H1. 
+      apply (IHl1 H1) in H0 as H2.
+      apply sorted_cons_inv in H0 as H3. apply IHl2 in H3 as H4.
+      simpl. destruct (a <=? a0) eqn : E.
+      * destruct l1; apply leb_complete in E.
+        { simpl. simpl in H2. apply sorted_cons; auto. }
+        { apply sorted_merge1; inv H; auto. }
+      * destruct l2; apply leb_complete_conv in E;
+        apply Nat.lt_le_incl in E.
+        { simpl in H4. apply sorted_cons; auto. }
+        { apply sorted_merge1; inv H0; auto. }
+Qed.
+(** [] *) 
 
 (** **** Exercise: 2 stars, standard (mergesort_sorts) *)
 Lemma mergesort_sorts: forall l, sorted (mergesort l).
 Proof. 
   apply mergesort_ind; intros. (* Note that we use the special induction principle. *)
-(* FILL IN HERE *) Admitted.
+  - constructor.
+  - constructor.
+  - apply sorted_merge; auto.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -501,14 +550,31 @@ Proof.
 Lemma merge_perm: forall (l1 l2: list nat),
     Permutation (l1 ++ l2) (merge l1 l2).
 Proof. 
-  (* Hint: A nested induction on [l2] is required. *)
-  (* FILL IN HERE *) Admitted.
+  induction l1; simpl.
+  - intros. destruct l2. constructor. apply Permutation_refl.
+  - intros. induction l2.
+    + rewrite app_nil_r. reflexivity.
+    + destruct (a <=? a0) eqn : E.
+      * apply perm_skip. apply IHl1.
+      * rewrite app_comm_cons. rewrite Permutation_app_comm.
+        simpl. apply perm_skip. rewrite Permutation_app_comm.
+        apply IHl2.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (mergesort_perm) *)
+
 Lemma mergesort_perm: forall l, Permutation l (mergesort l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply mergesort_ind; intros.
+  - apply perm_nil.
+  - apply Permutation_refl.
+  - subst. rename _x into l. apply split_perm in e0.
+    eapply perm_trans. apply e0. rewrite <- merge_perm.
+    eapply perm_trans. apply Permutation_app_head. apply H0.
+    eapply perm_trans. apply Permutation_app_tail. apply H.
+    apply Permutation_refl.
+Qed.
 (** [] *)
 
 (** Putting it all together: *)
@@ -523,4 +589,4 @@ Qed.
 
 (** $Date$ *)
 
-(* 2023-08-23 11:34 *)
+(* 2023-06-20 19:41 *)

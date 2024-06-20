@@ -82,7 +82,8 @@ Proof. reflexivity. Qed.
     The empty map returns its default element for all keys: *)
 Lemma t_apply_empty:  forall A x v, @t_empty A v x = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (t_update_eq)
@@ -94,7 +95,8 @@ Proof.
 Lemma t_update_eq : forall A (m: total_map A) x v,
   (t_update m x v) x = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold t_update. rewrite Nat.eqb_refl. reflexivity.
+Qed.
 
 (** [] *)
 
@@ -109,7 +111,9 @@ Theorem t_update_neq : forall (X:Type) v x1 x2
   x1 <> x2 ->
   (t_update m x1 v) x2 = m x2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold t_update. apply Nat.eqb_neq in H. rewrite H.
+  reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (t_update_shadow)
@@ -124,7 +128,9 @@ Lemma t_update_shadow : forall A (m: total_map A) v1 v2 x,
     t_update (t_update m x v1) x v2
   = t_update m x v2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. extensionality y. unfold t_update.
+  destruct (x =? y) eqn : E; reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (t_update_same)
@@ -135,7 +141,11 @@ Proof.
 Theorem t_update_same : forall X x (m : total_map X),
   t_update m x (m x) = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. extensionality y. unfold t_update.
+  destruct (x =? y) eqn : E.
+  - apply Nat.eqb_eq in E; subst. reflexivity.
+  - reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (t_update_permute)
@@ -149,7 +159,11 @@ Theorem t_update_permute : forall (X:Type) v1 v2 x1 x2
     (t_update (t_update m x2 v2) x1 v1)
   = (t_update (t_update m x1 v1) x2 v2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. extensionality y. unfold t_update.
+  destruct (x1 =? y) eqn : E1, (x2 =? y) eqn : E2; auto.
+  apply Nat.eqb_eq in E1; apply Nat.eqb_eq in E2; subst.
+  exfalso; apply H; reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -217,4 +231,4 @@ Proof.
   apply t_update_permute.
 Qed.
 
-(* 2023-08-23 11:34 *)
+(* 2023-06-20 20:11 *)
